@@ -1,0 +1,240 @@
+---
+title: "Comparaison FROGS/MOTHUR/UPARSE sur communautés synthétiques"
+author: "Mahendra Mariadassou, Géraldine Pascal"
+date: "17 juin 2016"
+output:
+  html_document:
+    number_sections: yes
+    theme: united
+    toc: yes
+  pdf_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+setwd("~/Research_Projects/Microbiota/Geraldine/")
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE, 
+                      fig.path = "Figures_20160722/Fig-reel/", 
+                      cache.path = "cache/reel/")
+```
+
+# Introduction 
+
+Ce document R markdown a vocation à documenter la procédure suivie pour comparer les résultats de FROGS, Mothur et UParse sur communautés synthétiques. En particulier, on cherche à savoir si Frogs permet d'avoir une vision taxonomique des communautés bactériennes plus fidèle que Mothur et UParse. 
+
+# Import et préparation des données
+
+## Chargement des packages
+
+On commence par charger quelques packages utiles:
+- reshape et dplyr pour la manipulation de données
+- ggplot2, grid et gridExtra pour la visualisation
+- PMCMR pour effectuer des tests de Dunn (version non paramétrique du test post-hoc de Tukey)
+
+```{r load-packages, message=FALSE}
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(reshape2)
+library(PMCMR) ## The Pairwise Multiple Comparison of Mean Ranks Package (PMCMR)
+library(multcomp)
+library(dplyr)
+```
+
+et une fonction utilitaire pour combiner plusieurs graphiques ggplot:
+```{r utility-functions}
+## http://stackoverflow.com/questions/13649473/add-a-common-legend-for-combined-ggplots
+grid_arrange_shared_legend <- function(..., ncol = 1) {
+  require(grid)
+    plots <- list(...)
+    if (length(plots) == 1) { ## already a list of plots
+      plots <- plots[[1]]
+    }
+    g <- ggplotGrob(plots[[1]] + theme(legend.position="bottom"))$grobs
+    legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
+    lheight <- sum(legend$height)
+    grid.arrange(
+        do.call(arrangeGrob, c(lapply(plots, function(x)
+            x + theme(legend.position="none")), ncol = ncol)),
+        legend,
+        nrow = 2,
+        heights = unit.c(unit(1, "npc") - lheight, lheight))
+}
+generate_barplot <- function(p, data, vbl, ylab = "share of communities") {
+  levs <- levels(data[[vbl]])
+  result <- lapply(levs, 
+                   function(lev) { p + geom_bar(data = filter_(data, 
+                                                          lazyeval::interp(~variable == value, variable = as.name(vbl), value = lev))) + 
+                                        labs(y = ylab) + ggtitle(lev)})
+  return(result)
+}
+
+generate_pointplot <- function(p, data, vbl, ylab = "Divergence competitor") {
+  levs <- levels(data[[vbl]])
+  result <- lapply(levs, 
+                   function(lev) { p + geom_point(data = filter_(data, 
+                                                          lazyeval::interp(~variable == value, variable = as.name(vbl), value = lev))) + 
+                                        labs(y = ylab) + ggtitle(lev)})
+  return(result)
+}
+```
+
+Et une palette manuelle de couleurs pour les graphiques. 
+```{r manual-color-scale}
+manual.palette <- c("frogs"      = rgb(0, 1, 0, alpha = 0.6, maxColorValue = 1), 
+                    "tied"       = "grey60", 
+                    "competitor" = rgb(1, 0, 0, alpha = 0.6, maxColorValue = 1), 
+                    "mothur"     = rgb(1, 0.2, 0, alpha = 0.6, maxColorValue = 1), 
+                    "mothur_sop" = rgb(1, 0.5, 0, alpha = 0.6, maxColorValue = 1),                   
+                    "uparse"     = rgb(0, 0.2, 1, alpha = 0.6, maxColorValue = 1), 
+                    "uparse_sop" = rgb(0, 0.5, 1, alpha = 0.6, maxColorValue = 1))
+```
+
+
+## Import des données
+
+On importe ensuite les données
+```{r import-data}
+data <- read.table("reel.tsv", sep = "\t", header = TRUE)
+head(data)
+```
+
+## Transformation des données
+
+Les différentes réponses d'intéret sont `r names(data)[-c(1:7)]` stockées sur plusieurs colonnes. Avant toute chose, on change la variale nb_OTU en une variable numérique (pour retrouver un ordonnancement naturel) puis on sépare les informations sur le nombre de faux positifs et de faux négatifs dans un tableau distinct. 
+
+```{r change-nb_OTU, warning = FALSE}
+data$nb_OTU <- as.numeric(sub("sp", "", data$nb_OTU))
+```
+
+
+Dans notre contexte on cherche à comparer les performances de mothur et silva à celles de frogs en termes de divergence à plusieurs niveaux taxonomiques. On va donc réorganiser le tableau en considérant que chaque "unité expérimentale"" est un jeu de données décrit à un niveau taxonomique donné par une méthode donnée et qu'on mesure dessus la divergence entre compositions mesurée et théorique. Cette structure est utile pour la visualtion et les anovas. 
+
+```{r melt-data}
+data <- data %>% melt(id.vars = c("databank", "nb_OTU", "dataset", 
+                                  "set_number", "amplicon", "abundance_law", "method"), 
+                      value.name = "divergence", 
+                      variable.name = "rank")
+head(data)
+```
+
+On va aussi construire un autre tableau qui intégre le fait que frogs constitue notre méthode de référence et qu'on compare, sur chaque échantillon, une méthode concurrente à la méthode de référence. 
+```{r cast-data}
+data.2 <- data %>% dcast(databank + nb_OTU + dataset + set_number + amplicon + abundance_law + rank ~ method) %>% 
+  melt(id.vars = c("databank", "nb_OTU", "dataset", "set_number", "amplicon", "abundance_law", "rank", "frogs"), 
+       value.name = "divergence", 
+       variable.name = "method")
+head(data.2)
+```
+Dans data.2, *divergence* correspond à la divergence mesurée sur une méthode concurrente (renseignée dans *method*) tandis que *frogs* correspond à la divergence mesurée par FROGS. 
+
+Finalement on change l'ordre des méthodes pour que les panels soient dans le bon ordre dans les graphiques
+```{r data-change-method-order}
+data.2 <- data.2 %>% mutate(method = factor(method, levels = c("uparse", "mothur")))
+```
+
+
+## Visualisation des données
+
+Contrairement aux données simulées, les données issues de communautés réelles ne répondent pas à un plan factoriel parfait (cf ci dessous) et le niveau de réplication est un peu plus faible. On va donc procéder à des analyses un peu différentes, plus localisées. 
+
+```{r data-design}
+data.2 %>% group_by(nb_OTU, amplicon, abundance_law) %>% summarize(count = n() / 10) %>% print()
+```
+
+### Effet de la région
+
+La région V4V5 est la pire en terme de divergence, la V4V4 la meilleure et comme attendu la divergence est plus importante pour des classes fines (Genus) que pour des classes grossières (Phylum). 
+
+```{r amplicon-effect-barplot}
+p <- ggplot(filter(data, abundance_law == "even" & set_number == "set1"), aes(x = method, y = divergence, fill = method)) + geom_bar(stat = "identity") + facet_grid(rank~amplicon) + scale_fill_manual(values = manual.palette)
+plot(p)
+```
+
+Une représentation alternative permet de mieux voir les différences: uparse fait mieux que frogs et mothur pour les classes fines et pareil ou moins bien pour les classes grossières. Comme il n'y a qu'un échantillon par amplicon pour chaque méthode, il est impossible de faire des statistiques. 
+```{r amplicon-effect-paired-plot}
+p <- ggplot(filter(data, abundance_law == "even" & set_number == "set1"), aes(x = method, y = divergence)) + geom_point(aes(color = method)) + geom_line(aes(group = rank, alpha = rank)) + facet_grid(~amplicon) + scale_color_manual(values = manual.palette) + scale_y_continuous(lim = c(0, NA)) + theme_bw()
+plot(p)
+```
+
+### Effet de la distribution 
+
+On s'intéresse ici uniquement aux échantillons V3V4 pour 20 espèces et on va comparer les distributions uniformes (*even*) et échelonnées (*staggered*). La distribution échelonnée permet d'avoir des images plus fidèles que la distribution uniforme à des niveaux fin et vice-versda à des niveaux grossiers. Notons que le niveau de divergence observé ici est probablement dû aux limites de la technologie (baiais de préparation, amplification, nombre de copies, etc) plus qu'aux limites de chacune des méthodes. 
+```{r distribution-effect-boxplot, fig.width = 8, fig.height = 6}
+p <- ggplot(filter(data, amplicon == "V3V4" & nb_OTU == 20), aes(x = method, y = divergence)) + geom_point(aes(color = method)) + geom_boxplot(aes(fill = method)) + facet_grid(abundance_law~rank) + scale_color_manual(values = manual.palette) + scale_fill_manual(values = manual.palette) + scale_y_continuous(lim = c(0, NA)) + theme_bw()
+plot(p)
+```
+
+On peut aussi s'intéresser plus explicitement aux différences entre frogs et ses concurrents: 
+```{r distribution-effect-paired-plot, fig.width = 8, fig.height = 6}
+p <- ggplot(filter(data.2, amplicon == "V3V4" & nb_OTU == 20), aes(x = method, y = frogs - divergence)) + geom_point() + geom_boxplot(aes(fill = method)) + facet_grid(abundance_law ~ rank) + scale_color_manual(name = "Competitor", values = manual.palette) + scale_fill_manual(name = "Competitor", values = manual.palette) + theme_bw() + geom_hline(yintercept = 0, col = "grey60") + ylab("Frogs - Competitor")
+plot(p)
+```
+
+On peut enfin tester si les différences sont significatives en faisant un test de student pairé. On délaisse ici l'approche non-paramétrique puisqu'on a trop peu d'échantillon (4) par modalité pour avoir de la puissance avec un test de Mann-Whitney. Et dans tous les cas, même si la différence est statistiquement significative, le graphique précédent montre qu'elle de l'ordre du demi-pourcent de divergence, très faible par rapport aux divergence de base atteintes par chaque méthode. 
+```{r distribution-t-test}
+data.t.test <- data.2 %>% filter(amplicon == "V3V4", nb_OTU == 20) %>% 
+  group_by(databank, nb_OTU, dataset, amplicon, abundance_law, rank, method) %>% 
+  summarize(pval = t.test(frogs, divergence, paired = TRUE)$p.value, 
+            measure = t.test(frogs, divergence, paired = TRUE)$estimate) %>% 
+  mutate(best = ifelse(measure >0, "competitor", "frogs")) %>% 
+  mutate(best = ifelse(pval < 0.05, best, "tied")) %>%
+  mutate(best = factor(best, levels = c("frogs", "tied", "competitor")))
+data.t.test %>% select(measure, pval, best) %>% head()
+```
+
+```{r distribution-t-test-plot, fig.width=8, fig.height=5}
+p <- ggplot(mapping = aes(x = rank, fill = best)) + facet_grid(abundance_law ~ nb_OTU) + theme_bw() + scale_fill_manual(values = manual.palette) + theme(axis.text.x = element_text(angle = 90))
+plot.list <- generate_barplot(p, data = data.t.test, vbl = "method", ylab = "Number of communities")
+grid_arrange_shared_legend(plot.list, ncol = 2)
+```
+
+### Comparaison sur des communautés de 4 espèces
+
+On s'intéresse ici uniquement aux échantillons V3V4 pour 4 espèces (distribution *uneven* pour tous) et on va comparer les 3 mérthodes dessus. 
+```{r method-effect-4-species-boxplot, fig.width = 8, fig.height = 5}
+p <- ggplot(filter(data, nb_OTU == 4), aes(x = method, y = divergence)) + geom_point(aes(color = method)) + geom_boxplot(aes(fill = method)) + facet_grid(~rank) + scale_color_manual(values = manual.palette) + scale_fill_manual(values = manual.palette) + scale_y_continuous(lim = c(0, NA)) + theme_bw()
+plot(p)
+```
+Là encore la variabilité entre échantillons est très grande et on va s'intéresser plus explicitement aux différences entre frogs et ses concurrents: 
+```{r method-effect-4-species-paired-plot, fig.width = 8, fig.height = 5}
+p <- ggplot(filter(data.2, nb_OTU == 4), aes(x = method, y = frogs - divergence)) + geom_point() + geom_boxplot(aes(fill = method)) + facet_grid(~ rank) + scale_color_manual(name = "Competitor", values = manual.palette) + scale_fill_manual(name = "Competitor", values = manual.palette) + theme_bw() + geom_hline(yintercept = 0, col = "grey60") + ylab("Frogs - Competitor")
+plot(p)
+```
+
+On peut enfin tester si les différences sont significatives en faisant un test de student pairé. Même si la différence est statistiquement significative, le graphique précédent montre qu'elle de l'ordre du pourcent de divergence, très faible par rapport aux divergence de base atteintes par chaque méthode. 
+```{r method-t-test-4-species, fig.width=8, fig.height=5}
+data.t.test <- data.2 %>% filter(nb_OTU == 4) %>% 
+  group_by(databank, nb_OTU, dataset, amplicon, abundance_law, rank, method) %>% 
+  summarize(pval = t.test(frogs, divergence, paired = TRUE)$p.value, 
+            measure = t.test(frogs, divergence, paired = TRUE)$estimate) %>% 
+  mutate(best = ifelse(measure >0, "competitor", "frogs")) %>% 
+  mutate(best = ifelse(pval < 0.05, best, "tied")) %>%
+  mutate(best = factor(best, levels = c("frogs", "tied", "competitor")))
+data.t.test %>% select(measure, pval, best) %>% head()
+```
+
+```{r method-t-test-4-species-plot, fig.width=8, fig.height=5}
+p <- ggplot(mapping = aes(x = rank, fill = best)) + facet_grid(abundance_law ~ nb_OTU) + theme_bw() + scale_fill_manual(values = manual.palette) + theme(axis.text.x = element_text(angle = 90))
+plot.list <- generate_barplot(p, data = data.t.test, vbl = "method", ylab = "Number of communities")
+grid_arrange_shared_legend(plot.list, ncol = 2)
+```
+
+Et on peut faire la même chose en non paramétrique (on a 19 échantillons, assez pour faire un test de mann-withney pairé)
+```{r method-wilcox-test-4-species}
+data.wilcox.test <- data.2 %>% filter(nb_OTU == 4) %>% 
+  group_by(databank, nb_OTU, dataset, amplicon, abundance_law, rank, method) %>% 
+  summarize(pval = wilcox.test(frogs, divergence, paired = TRUE)$p.value, 
+            measure = wilcox.test(frogs, divergence, paired = TRUE, conf.int = TRUE)$estimate) %>% 
+  mutate(best = ifelse(measure >0, "competitor", "frogs")) %>% 
+  mutate(best = ifelse(pval < 0.05, best, "tied")) %>%
+  mutate(best = factor(best, levels = c("frogs", "tied", "competitor")))
+data.wilcox.test %>% select(measure, pval, best) %>% head()
+```
+
+Il ne reste plus qu'à représenter les données pour savoir dans quelles circonstances frogs fait mieux que la compétition.
+```{r method-wilcox-test-4-species-plot, fig.width=8, fig.height=5}
+p <- ggplot(mapping = aes(x = rank, fill = best)) + facet_grid(abundance_law ~ nb_OTU) + theme_bw() + scale_fill_manual(values = manual.palette) + theme(axis.text.x = element_text(angle = 90))
+plot.list <- generate_barplot(p, data = data.wilcox.test, vbl = "method", ylab = "Number of communities")
+grid_arrange_shared_legend(plot.list, ncol = 2)
+```
