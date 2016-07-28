@@ -15,7 +15,7 @@ output:
 ---
 
 ```{r setup, include=FALSE, echo = FALSE}
-setwd("~/Research_Projects/Microbiota/Geraldine/")
+#setwd("~/Research_Projects/Microbiota/Geraldine/")
 knitr::opts_chunk$set(echo = FALSE, cache = TRUE, message = FALSE, 
                       fig.path = "Figures_20160722/Fig-english/", 
                       cache.path = "cache/english/")
@@ -83,10 +83,11 @@ This is an R markdown document intended to compare the performances of FROGS, MO
 
 ## Metrics used for comparison 
 
-The results of FROGS, MOTHUR and UPARSE are compared using three different metrics: 
-* **Divergence**: Bray-Curtis distance (expressed in percent) between the true taxonomic composition of the community and the one inferred by the otu-picking tool. The divergence is measured at all taxonomic ranks from Phylum to either Genus (utax) or Species (Silva). 
-* **FN**: Number of false negative taxa (*i.e.* present in the original bacterial community but not discovered by the otu picking method); 
-* **FP**: Number of false positive taxa (*i.e.* discovered by the otu picking method but not present in the original bacterial community)
+The results of FROGS, MOTHUR and UPARSE are compared using three different metrics:   
+
+1. **Divergence**: Bray-Curtis distance (expressed in percent) between the true taxonomic composition of the community and the one inferred by the otu-picking tool. The divergence is measured at all taxonomic ranks from Phylum to either Genus (utax) or Species (Silva).  
+2. **FN**: Number of false negative taxa (*i.e.* present in the original bacterial community but not discovered by the otu picking method);  
+3. **FP**: Number of false positive taxa (*i.e.* discovered by the otu picking method but not present in the original bacterial community)  
 
 ## Experimental design
 
@@ -94,13 +95,14 @@ The experimental design differed for the simulated communities (for which a full
 
 ### Simulated bacterial communities
 
-The simulated communities were built according to the following design:
-* **Databank**: Biobank from which taxa were drawn to construct theoretical communities, either Silva (*silva*) or Utax (*utax*). 
-* **Number of OTUs**: 20, 100, 200, 500 and 1000;
-* **Abundance distribution**: abundances of OTUs were either uniform (*uniform*) or sampled from a power distribution (*power_law*);
-* **Dataset**: Theoretical communities. Each dataset (5 for each combinaison of abundance distribution and number of OTUs) correspond to a unique **ideal** bacterial community specified by its own taxa set and corresponding vector of relative abundances. 
-* **Set Number**: Biological replicates (10 for each dataset), *i.e.* communities created by sampling organisms with replacement in the theoretical communities.  
-* **Amplicon**: variable region of the 16S rRNA used to produce the ampicon sequences, either the V3-V4 (*V3V4*) variable region or the V4-V4 (*V4V4*) variable region
+The simulated communities were built according to the following design:  
+
+1. **Databank**: Biobank from which taxa were drawn to construct theoretical communities, either Silva (*silva*) or Utax (*utax*).  
+2. **Number of OTUs**: 20, 100, 200, 500 and 1000;  
+3. **Abundance distribution**: abundances of OTUs were either uniform (*uniform*) or sampled from a power distribution (*power_law*);  
+4. **Dataset**: Theoretical communities. Each dataset (5 for each combinaison of abundance distribution and number of OTUs) correspond to a unique **ideal** bacterial community specified by its own taxa set and corresponding vector of relative abundances.  
+5. **Set Number**: Biological replicates (10 for each dataset), *i.e.* communities created by sampling organisms with replacement in the theoretical communities.  
+6. **Amplicon**: variable region of the 16S rRNA used to produce the ampicon sequences, either the V3-V4 (*V3V4*) variable region or the V4-V4 (*V4V4*) variable region  
 
 This resulted in a total of 2 databanks $\times$ 5 community sizes $\times$ 2 abundance distribution $\times$ 10 theoretical communities $\times$ 10 replicates for each theoretical community $\times$ 2 amplicons $=$ `r 2*5*2*5*10*2` samples (`r 5*2*5*10*2` per databank). 
 

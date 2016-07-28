@@ -7,13 +7,15 @@ output:
     number_sections: yes
     theme: united
     toc: yes
-    toc_float: true
+    toc_float:
+      collapsed: true
+      smooth_scroll: true    
   pdf_document:
     toc: yes
 ---
 
 ```{r setup, include=FALSE}
-setwd("~/Research_Projects/Microbiota/Geraldine/")
+# setwd("~/Research_Projects/Microbiota/Geraldine/")
 knitr::opts_chunk$set(echo = TRUE, cache = TRUE, 
                       fig.path = "Figures_20160722/Fig-utax/", 
                       cache.path = "cache/utax/")
