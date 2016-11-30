@@ -1,7 +1,7 @@
 ---
-title: "Comparison of FROGS/MOTHUR/UPARSE on simulated and synthetic microbial communities"
+title: "Comparison of FROGS/MOTHUR/UPARSE/QIIME on simulated and synthetic microbial communities"
 author: "Mahendra Mariadassou, Géraldine Pascal"
-date: "17 juin 2016"
+date: "30 november 2016"
 output:
   html_document:
     number_sections: yes
@@ -15,9 +15,9 @@ output:
 ---
 
 ```{r setup, include=FALSE, echo = FALSE}
-#setwd("~/Research_Projects/Microbiota/Geraldine/")
+# setwd("~/Research_Projects/Microbiota/Geraldine/")
 knitr::opts_chunk$set(echo = FALSE, cache = TRUE, message = FALSE, 
-                      fig.path = "Figures_20160722/Fig-english/", 
+                      fig.path = "Figures_20161130/Fig-english/", 
                       cache.path = "cache/english/")
 ```
 
@@ -30,63 +30,20 @@ library(gridExtra)
 library(knitr)
 ```
 
-```{r manual-color-scale}
-manual.palette <- c("frogs"      = rgb(0, 1, 0, alpha = 0.6, maxColorValue = 1), 
-                    "tied"       = "grey60", 
-                    "competitor" = rgb(1, 0, 0, alpha = 0.6, maxColorValue = 1), 
-                    "mothur"     = rgb(1, 0.2, 0, alpha = 0.6, maxColorValue = 1), 
-                    "mothur_sop" = rgb(1, 0.5, 0, alpha = 0.6, maxColorValue = 1),                   
-                    "uparse"     = rgb(0, 0.2, 1, alpha = 0.6, maxColorValue = 1), 
-                    "uparse_sop" = rgb(0, 0.5, 1, alpha = 0.6, maxColorValue = 1))
-```
-
-```{r utility-functions}
-## http://stackoverflow.com/questions/13649473/add-a-common-legend-for-combined-ggplots
-grid_arrange_shared_legend <- function(..., ncol = 1) {
-  require(grid)
-    plots <- list(...)
-    if (length(plots) == 1) { ## already a list of plots
-      plots <- plots[[1]]
-    }
-    g <- ggplotGrob(plots[[1]] + theme(legend.position="bottom"))$grobs
-    legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
-    lheight <- sum(legend$height)
-    grid.arrange(
-        do.call(arrangeGrob, c(lapply(plots, function(x)
-            x + theme(legend.position="none")), ncol = ncol)),
-        legend,
-        nrow = 2,
-        heights = unit.c(unit(1, "npc") - lheight, lheight))
-}
-generate_barplot <- function(p, data, vbl, ylab = "share of communities") {
-  levs <- levels(data[[vbl]])
-  result <- lapply(levs, 
-                   function(lev) { p + geom_bar(data = filter_(data, 
-                                                          lazyeval::interp(~variable == value, variable = as.name(vbl), value = lev))) + 
-                                        labs(y = ylab) + ggtitle(lev)})
-  return(result)
-}
-
-generate_pointplot <- function(p, data, vbl, ylab = "Divergence competitor") {
-  levs <- levels(data[[vbl]])
-  result <- lapply(levs, 
-                   function(lev) { p + geom_point(data = filter_(data, 
-                                                          lazyeval::interp(~variable == value, variable = as.name(vbl), value = lev))) + 
-                                        labs(y = ylab) + ggtitle(lev)})
-  return(result)
-}
+```{r utility-functions, cache = FALSE}
+source("utilities.R")
 ```
 
 # Introduction
 
-This is an R markdown document intended to compare the performances of FROGS, MOTHUR and UPARSE in terms of accuracy on both simulated and synthetic microbial communities. 
+This is an R markdown document intended to compare the performances of FROGS, MOTHUR, UPARSE and QIIME in terms of accuracy on both simulated and synthetic microbial communities. 
 
 ## Metrics used for comparison 
 
-The results of FROGS, MOTHUR and UPARSE are compared using three different metrics:   
+The results of FROGS, MOTHUR and UPARSE, QIIME are compared using three different metrics:   
 
 1. **Divergence**: Bray-Curtis distance (expressed in percent) between the true taxonomic composition of the community and the one inferred by the otu-picking tool. The divergence is measured at all taxonomic ranks from Phylum to either Genus (utax) or Species (Silva).  
-2. **FN**: Number of false negative taxa (*i.e.* present in the original bacterial community but not discovered by the otu picking method);  
+2. **FN**: Number of false negative taxa (*i.e.* present in the original bacterial community but not discovered by the otu picking method);
 3. **FP**: Number of false positive taxa (*i.e.* discovered by the otu picking method but not present in the original bacterial community)  
 
 ## Experimental design
@@ -107,23 +64,21 @@ The simulated communities were built according to the following design:
 This resulted in a total of 2 databanks $\times$ 5 community sizes $\times$ 2 abundance distribution $\times$ 10 theoretical communities $\times$ 10 replicates for each theoretical community $\times$ 2 amplicons $=$ `r 2*5*2*5*10*2` samples (`r 5*2*5*10*2` per databank). 
 
 ```{r experimental-design-silva, eval = FALSE}
-read.table("silva.tsv", sep = "\t", header = TRUE) %>% group_by(databank, nb_OTU, amplicon, abundance_law, dataset) %>% summarize(count = n()/5) %>% kable()
-read.table("utax.tsv", sep = "\t", header = TRUE) %>% group_by(databank, nb_OTU, amplicon, abundance_law, dataset) %>% summarize(count = n()/5) %>% kable()
+read.table("silva.tsv", sep = "\t", header = TRUE) %>% group_by(databank, nb_OTU, amplicon, abundance_law, dataset) %>% summarize(count = n()/4) %>% kable()
+read.table("utax.tsv", sep = "\t", header = TRUE) %>% group_by(databank, nb_OTU, amplicon, abundance_law, dataset) %>% summarize(count = n()/7) %>% kable()
 ```
 
 ### Synthetic communities
 
 The experimental design used for the synthetic community was sligthly different:
 ```{r experimental-design-real}
-read.table("reel.tsv", sep = "\t", header = TRUE) %>% group_by(nb_OTU, amplicon, abundance_law) %>% summarize(count = n()/3) %>% kable()
+read.table("reel.tsv", sep = "\t", header = TRUE) %>% group_by(nb_OTU, amplicon, abundance_law) %>% summarize(count = n()/4) %>% kable()
 ```
 
 Three samples corresponding to communities of size 20 with abundance distribution *even* were used to compare the amplicon *V3V4*, *V4V4* and *V4V5* (1 per amplicon). 8 samples corresponding to communities of size 20 and amplicon *V3V4* were used to compared abundance distribution *even* and *staggered* (4 per distribution) and finally, 19 samples (community size 4, amplicon *V3V4* and distribution *even*) were used to compare the accuracy of the different otu picking methods. 
 
 
-# Analysis of the results
-
-## Statistical Analysis: Material and Methods
+# Statistical analysis of the results: Material and Methods
 
 For each of the three metrics (divergence, FN and FP) we performed two-sided paired test, either parametric (paired t-test) or non-parametric (signed rank test, also known as paired mann-whitney test) to assess the difference in accuracy between FROGS and each of the competitors. 
 
@@ -133,7 +88,7 @@ For each theoretical community, we declared FROGS better (resp. worse) than its 
 
 Before presenting the statistical analysis per se, we first present the results graphically for each of the databank and for the synthetic communities. 
 
-## Silva databank
+# Silva databank
 
 [//]: # (Import and format data)
 
@@ -166,7 +121,7 @@ data.2 <- data %>% dcast(databank + nb_OTU + dataset + set_number + amplicon + a
 ```
 
 ```{r silva-change-method-order}
-data.2 <- data.2 %>% mutate(method = factor(method, levels = c("uparse", "mothur")))
+data.2 <- data.2 %>% mutate(method = factor(method, levels = c("uparse", "mothur", "qiime")))
 ```
 
 ```{r split-divergence-and-otu}
@@ -176,35 +131,35 @@ data.otus.2 <- filter(data.2, (rank %in% c("FP", "FN"))) %>% mutate(error_type =
 data.2 <- filter(data.2, !(rank %in% c("FP", "FN"))) %>% mutate(rank = factor(rank))
 ```
 
-### Vizualisation 
+## Vizualisation 
 
-#### Divergence 
+### Divergence 
 
 The comparisons of divergence at the sample level in the scatterplots shows that on average, FROGS has comparable but better performances than MOTHUR and UPARSE: most samples end up in the upper left corner (corresponding to the region "divergence FROGS < divergence competitor") but no too far away from the first diagonal (grey line). 
 
 
-```{r plot-data-raw, fig.width=10, fig.height=7, message=FALSE, warning=FALSE}
+```{r plot-data-raw, fig.width=12, fig.height=10, message=FALSE, warning=FALSE}
 p <- ggplot(data = data.2, mapping = aes(x = frogs, y = divergence, color = abundance_law, shape = amplicon)) + facet_grid(rank ~ nb_OTU) + geom_abline(slope = 1, intercept = 0) + theme_bw() + scale_x_log10() + scale_y_log10() + xlab("divergence frogs")
 plot.list <- generate_pointplot(p, data = data.2, vbl="method", ylab = "Divergence competitor")
 grid_arrange_shared_legend(plot.list, ncol = 2)
 ```
 
-A more traditional representation using boxplot of the excess divergence of FROGS, with samples from all theoretical communities pooled together, confirms the results: FROGS has similar (compared to UPARSE) or lower (compared to MOTHUR) divergence for the vast majority of samples. Note that the y-range was reduced from $[-40, 3]$ to $[-15, 3]$ in order to exclude outliers (communities with low FROGS but very high MOTHUR divergence) and zoom in on the boxplots. 
+A more traditional representation using boxplot of the excess divergence of FROGS, with samples from all theoretical communities pooled together, confirms the results: FROGS has similar (compared to UPARSE and QIIME) or lower (compared to MOTHUR) divergence for the vast majority of samples. Note that the y-range was reduced from $[-51, 41]$ to $[-15, 3]$ in order to exclude from outliers (1% of communities with low FROGS but very high MOTHUR divergence or high FROGS but low QIIME divergences) and zoom in on the boxplots. The only configuration where FROGS is consistently outperformed is complex communities (number of species > 200) with uniform abundances and sequenced on the V4V4 region. In that configuration, FROGS is outperformed by QIIME. 
 
 ```{r plot-data-raw-boxplot, fig.width=10, fig.height=7, warning=FALSE}
-p <- ggplot(data.2, mapping = aes(x = interaction(amplicon, abundance_law), y = frogs - divergence, fill = method)) + facet_grid(rank ~ nb_OTU, scales = "fixed") + geom_boxplot() + theme_bw() + scale_y_continuous(limits = c(-15, 3)) + theme(axis.text.x = element_text(angle = 90)) + scale_fill_manual(values = manual.palette) + xlab(NULL) + ylab("FROGS excess divergence") + geom_hline(yintercept = 0, col = "grey60")
+p <- ggplot(data.2, mapping = aes(x = interaction(amplicon, abundance_law), y = frogs - divergence, fill = method, color = method)) + facet_grid(rank ~ nb_OTU, scales = "fixed") + geom_boxplot(outlier.size = 0.8) + geom_boxplot(aes(color = NULL), outlier.color = "transparent") + theme_bw() + scale_y_continuous(limits = c(-15, 3)) + theme(axis.text.x = element_text(angle = 90)) + scale_fill_manual(values = manual.palette) + scale_color_manual(values = manual.palette, guide = "none") + xlab(NULL) + ylab("FROGS excess divergence") + geom_hline(yintercept = 0, col = "grey60")
 plot(p)
 ```
 
-Finally a focus on the accuracy of FROGS alone shows that divergence levels vary between 0 and 10% and as expected, is higher for fine classification (Species) than for coarse ones (Phylum). Unsurprisingly, the V3V4 amplicon gives less distorded view of communities than the V4V4. 
+Finally a focus on the accuracy of FROGS alone shows that divergence levels vary mostly between 0 and 15% and as expected, are higher for finer classifications (Species) than for coarse ones (Phylum). Unsurprisingly, the V3V4 amplicon gives less distorded view of communities than the V4V4. 
 ```{r plot-frogs-only-divergence, fig.width=10, fig.height=7, warning=FALSE}
-p <- ggplot(filter(data, method == "frogs"), mapping = aes(x = rank, y = divergence, fill = method)) + facet_grid(abundance_law + amplicon ~ nb_OTU, scales = "fixed") + geom_boxplot() + theme_bw() + scale_y_continuous(limits = c(0, 14)) + theme(axis.text.x = element_text(angle = 90)) + scale_fill_manual(values = manual.palette) + xlab(NULL) + ggtitle("Divergence")
+p <- ggplot(filter(data, method == "frogs"), mapping = aes(x = rank, y = divergence, fill = method)) + facet_grid(abundance_law + amplicon ~ nb_OTU, scales = "fixed") + geom_boxplot() + theme_bw() + scale_y_continuous(limits = c(0, 16)) + theme(axis.text.x = element_text(angle = 90)) + scale_fill_manual(values = manual.palette) + xlab(NULL) + ggtitle("Divergence")
 plot(p)
 ```
 
-#### False Positive and False Negative OTUs
+### False Positive and False Negative OTUs
 
-We repeat the graphical exploration of the resutls with False Positive and False Negative OTUs. A first representation shows that use of the V3V4 amplicon leads to more false postive and less false negative than the V4V4. The graphics also highlight the gigantic number of false positive inferred by mothur (up to 20 times more than the real community size).  
+We repeat the graphical exploration of the resutls with False Positive and False Negative OTUs. A first representation shows that use of the V3V4 amplicon leads to more false postive and less false negative than the V4V4. The graphics also highlight the gigantic number of false positive inferred by MOTHUR and QIIME (up to 20 times more than the real community size).  
 
 ```{r plot-fp-fn-boxplot, fig.width=10, fig.height=8, warning=FALSE, message = FALSE}
 p <- ggplot(data.otus, mapping = aes(x = method, fill = method, y = divergence, alpha = amplicon)) + facet_grid(nb_OTU ~ abundance_law, scales = "free_y") + theme_bw() + scale_y_continuous(limits = c(0, NA)) + theme(axis.text.x = element_text(angle = 90)) + scale_fill_manual(values = manual.palette) + scale_color_manual(values = manual.palette) + scale_alpha_discrete(guide = guide_legend(override.aes = list(fill = "grey10")), range = c(0.2, 0.6)) + ylab(NULL)
@@ -219,18 +174,21 @@ The lower number of false positive in under power law abundances could be due to
 
 ```{r plot-fp-fn-boxplot-no-mothur, fig.width=10, fig.height=8, warning=FALSE, message = FALSE}
 p <- ggplot(data.otus, mapping = aes(x = method, fill = method, y = divergence, alpha = amplicon)) + facet_grid(nb_OTU ~ abundance_law, scales = "free_y") + theme_bw() + scale_y_continuous(limits = c(0, NA)) + theme(axis.text.x = element_text(angle = 90)) + scale_fill_manual(values = manual.palette) + scale_color_manual(values = manual.palette) + scale_alpha_discrete(guide = guide_legend(override.aes = list(fill = "grey10")), range = c(0.2, 0.6)) + ylab(NULL)
-p.fn <- p + geom_boxplot(data = filter(data.otus, error_type == "FN", !(method %in% c("mothur", "mothur_sop")))) + ggtitle("False Negative OTUs")
-p.fp <- p + geom_boxplot(data = filter(data.otus, error_type == "FP", !(method %in% c("mothur", "mothur_sop")))) + ggtitle("False Positive OTUs")
+excluded.methods <- c("mothur", "mothur_sop", "qiime", "qiime_sop")
+p.fn <- p + geom_boxplot(data = filter(data.otus, error_type == "FN", !(method %in% excluded.methods))) + ggtitle("False Negative OTUs")
+p.fp <- p + geom_boxplot(data = filter(data.otus, error_type == "FP", !(method %in% excluded.methods))) + ggtitle("False Positive OTUs")
 grid_arrange_shared_legend(p.fp, p.fn, ncol = 2)
 ```
 
-### Statistical Analysis
+## Statistical Analysis
 
-#### Divergence
+### Divergence
 
-We present the results of the paired tests, either parametric (t-test, top) or non-parametric (signed rank test, bottom). Both tests show that FROGS perform as well or better as UPARSE and MOTHUR in most conditions. The only condition in which FROGS does worse than UPARSE is small community size (20). 
+We present the results of the paired tests, either parametric (t-test, top) or non-parametric (signed rank test, bottom). Both tests show that FROGS perform as well or better as UPARSE and MOTHUR in most conditions. The only condition in which FROGS does worse than UPARSE is small community size (20). It also does better than QIIME in most settings, with the exception of large communities (size > 200) with uniform abundance studied using the V4V4 region. 
 
 The real strength of FROGS lies in its ability ot give a more accurate view of large communities (size > 200) at fine scales (Species or Genus level). 
+
+#### Paired t-test
 
 ```{r batch-t-test}
 data.t.test <- data.2 %>% group_by(databank, nb_OTU, dataset, amplicon, abundance_law, rank, method) %>% 
@@ -241,11 +199,13 @@ data.t.test <- data.2 %>% group_by(databank, nb_OTU, dataset, amplicon, abundanc
   mutate(best = factor(best, levels = c("frogs", "tied", "competitor")))
 ```
 
-```{r batch-t-test-plot, fig.width=10, fig.height=7, fig.cap = "Comparison of FROGS to competing methods using paired t-test."}
+```{r batch-t-test-plot, fig.width=10, fig.height=10}
 p <- ggplot(mapping = aes(x = rank, fill = best)) + facet_grid(abundance_law + amplicon ~ nb_OTU) + theme_bw() + scale_fill_manual(values = manual.palette) + theme(axis.text.x = element_text(angle = 90))
 plot.list <- generate_barplot(p, data = data.t.test, vbl = "method", ylab = "Number of communities")
 grid_arrange_shared_legend(plot.list, ncol = 2)
 ```
+
+#### Signed rank test
 
 ```{r batch-wilcox-test-np}
 data.wilcox.test <- data.2 %>% group_by(databank, nb_OTU, dataset, amplicon, abundance_law, rank, method) %>% 
@@ -256,24 +216,21 @@ data.wilcox.test <- data.2 %>% group_by(databank, nb_OTU, dataset, amplicon, abu
   mutate(best = factor(best, levels = c("frogs", "tied", "competitor")))
 ```
 
-```{r batch-wilcox-test-plot, fig.width=10, fig.height=7, fig.cap = "Comparison of FROGS to competing methods using signed rank tests."}
+```{r batch-wilcox-test-plot, fig.width=10, fig.height=10}
 p <- ggplot(mapping = aes(x = rank, fill = best)) + facet_grid(abundance_law + amplicon ~ nb_OTU) + theme_bw() + scale_fill_manual(values = manual.palette) + theme(axis.text.x = element_text(angle = 90))
 plot.list <- generate_barplot(p, data = data.wilcox.test, vbl = "method", ylab = "Number of communities")
 grid_arrange_shared_legend(plot.list, ncol = 2)
 ```
 
-#### False Positive and False Negative OTUs
+### False Positive and False Negative OTUs
 
-The same paired test as in the previous section reveal that FROGS strictly outperforms MOTHUR in terms of both FP and FN taxas. It also produces less FN than UPARSE. Additionnally, it produces less FP than UPARSE for uniform distributions and more power law ones. Overall, FROGS produces less FP and less FN than either of UPARSE and MOTHUR for high community sizes (>200 for uniform distributions, >1000 for power law distributions). 
+The same paired test as in the previous section reveal that FROGS strictly outperforms MOTHUR in terms of both FP and FN taxas. It also produces less FN than UPARSE and less FP than QIIME. Additionnally, it produces less FP than UPARSE for uniform distributions and more for power law ones. 
+
+Overall, FROGS produces less FP and less FN than either of UPARSE and MOTHUR for high community sizes (>200 for uniform distributions, >1000 for power law distributions) and less FP than QIIME at all sizes. 
+
+#### Paired t-test
 
 ```{r batch-t-test-otus}
-my.paired.t.test <- function(x, y, ...) {
-  if (sd(x - y)) {
-    t.test(x, y, paired = TRUE, ...)
-  } else {
-    return(list(p.value = 0, estimate = mean(x -y)))
-  }
-}
 data.otus.t.test <- data.otus.2 %>% group_by(databank, nb_OTU, dataset, amplicon, abundance_law, error_type, method) %>% 
   summarize(pval = my.paired.t.test(frogs, divergence)$p.value, 
             measure = my.paired.t.test(frogs, divergence)$estimate) %>% 
@@ -282,20 +239,15 @@ data.otus.t.test <- data.otus.2 %>% group_by(databank, nb_OTU, dataset, amplicon
   mutate(best = factor(best, levels = c("frogs", "tied", "competitor")))
 ```
 
-```{r batch-t-test-otus-plot, fig.width=10, fig.height=7}
+```{r batch-t-test-otus-plot, fig.width=10, fig.height=10}
 p <- ggplot(mapping = aes(x = error_type, fill = best)) + facet_grid(abundance_law + amplicon ~ nb_OTU) + theme_bw() + scale_fill_manual(values = manual.palette) + theme(axis.text.x = element_text(angle = 90)) + xlab("Error Type")
 plot.list <- generate_barplot(p, data = data.otus.t.test, vbl = "method", ylab = "Number of communities")
 grid_arrange_shared_legend(plot.list, ncol = 2)
 ```
 
+#### Signed rank test
+
 ```{r batch-wilcox-test-np-otus, warning=FALSE}
-my.paired.wilcox.test <- function(x, y, ...) {
-  if (sd(x - y)) {
-    wilcox.test(x, y, paired = TRUE, ...)
-  } else {
-    return(list(p.value = 0))
-  }
-}
 data.otus.wilcox.test <- data.otus.2 %>% group_by(databank, nb_OTU, dataset, amplicon, abundance_law, error_type, method) %>% 
   summarize(pval = my.paired.wilcox.test(frogs, divergence)$p.value, 
             measure = sum(sign(frogs - divergence) * rank(abs(frogs - divergence)))) %>% 
@@ -304,14 +256,14 @@ data.otus.wilcox.test <- data.otus.2 %>% group_by(databank, nb_OTU, dataset, amp
   mutate(best = factor(best, levels = c("frogs", "tied", "competitor")))
 ```
 
-```{r batch-wilcox-test-plot-otus, fig.width=10, , fig.height=7}
+```{r batch-wilcox-test-plot-otus, fig.width=10, fig.height=10}
 p <- ggplot(mapping = aes(x = error_type, fill = best)) + facet_grid(abundance_law + amplicon ~ nb_OTU) + theme_bw() + scale_fill_manual(values = manual.palette) + theme(axis.text.x = element_text(angle = 90)) + xlab("Error Type")
 plot.list <- generate_barplot(p, data = data.otus.wilcox.test, vbl = "method", ylab = "Number of communities")
 grid_arrange_shared_legend(plot.list, ncol = 2)
 ```
 
 
-## Utax databank
+# Utax databank
 
 ```{r utax-data-import}
 data <- read.table("utax.tsv", sep = "\t", header = TRUE)
@@ -321,23 +273,23 @@ data <- read.table("utax.tsv", sep = "\t", header = TRUE)
 ```
 
 ```{r utax-change-method-order}
-data.2 <- data.2 %>% mutate(method = factor(method, levels = c("uparse", "uparse_sop", "mothur", "mothur_sop")))
+data.2 <- data.2 %>% mutate(method = factor(method, levels = c("uparse", "uparse_sop", "mothur", "mothur_sop", "qiime", "qiime_sop")))
 ```
 
 ```{r utax-split-divergence-and-otu, ref.label="split-divergence-and-otu"}
 ```
 
-### Vizualisation 
+## Vizualisation 
 
-#### Divergence 
+### Divergence 
 
 The comparisons of divergence at the sample level in the scatterplots shows that on average, FROGS has comparable but better performances than MOTHUR and UPARSE: most samples end up in the upper left corner (corresponding to the region "divergence FROGS < divergence competitor") but no too far away from the first diagonal (grey line). 
 
 
-```{r utax-plot-data-raw, fig.width=10, fig.height=12, message=FALSE, warning=FALSE, ref.label="plot-data-raw"}
+```{r utax-plot-data-raw, fig.width=10, fig.height=15, message=FALSE, warning=FALSE, ref.label="plot-data-raw"}
 ```
 
-A more traditional representation using boxplot of the excess divergence of FROGS, with samples from all theoretical communities pooled together, confirms the results: FROGS has similar (compared to UPARSE) or lower (compared to MOTHUR) divergence for the vast majority of samples. Note that the y-range was reduced from $[-40, 3]$ to $[-15, 3]$ in order to exclude outliers (communities with low FROGS but very high MOTHUR divergence) and zoom in on the boxplots. As expected, all methods perform quite similarly up to the order level and the main differences appear at the *Family* and *Genus* levels, where MOTHUR and MOTHUR_SOP produces much larger divergences than competing methods.  
+A more traditional representation using boxplot of the excess divergence of FROGS, with samples from all theoretical communities pooled together, confirms the results: FROGS has similar (compared to UPARSE) or lower (compared to MOTHUR) divergence for the vast majority of samples. Note that the y-range was reduced from $[-85, 31]$ to $[-15, 3]$ in order to exclude outliers (4% of outliers with excess divergence < -15 and 0.02% with excess divergence > 3) and zoom in on the boxplots. As expected, all methods perform quite similarly up to the order level and the main differences appear at the *Family* and *Genus* levels, where MOTHUR and MOTHUR_SOP and QIIME_SOP produces much larger divergences than competing methods. The only configuration where FROGS is consistently outperformed is complex communities (number of species > 200) with uniform abundances and sequenced on the V4V4 region. In that configuration, FROGS is outperformed by QIIME. 
 
 ```{r utax-plot-data-raw-boxplot, fig.width=10, fig.height=7, warning=FALSE, ref.label="plot-data-raw-boxplot"}
 ```
@@ -346,7 +298,7 @@ Finally a focus on the accuracy of FROGS alone shows that divergence levels vary
 ```{r utax-plot-frogs-only-divergence, fig.width=10, fig.height=7, warning=FALSE, ref.label="plot-frogs-only-divergence"}
 ```
 
-#### False Positive and False Negative OTUs
+### False Positive and False Negative OTUs
 
 We repeat the graphical exploration of the resutls with False Positive and False Negative OTUs. A first representation shows that use of the V3V4 amplicon leads to more false postive and less false negative than the V4V4. The graphics also highlight the gigantic number of false positive inferred by mothur (up to 20 times more than the real community size).  
 
@@ -360,44 +312,52 @@ The lower number of false positive in under power law abundances could be due to
 ```{r utax-plot-fp-fn-boxplot-no-mothur, fig.width=10, fig.height=8, warning=FALSE, message = FALSE, ref.label="plot-fp-fn-boxplot-no-mothur"}
 ```
 
-### Statistical Analysis
+## Statistical Analysis
 
-#### Divergence
+### Divergence
 
-We present the results of the paired tests, either parametric (t-test, top) or non-parametric (signed rank test, bottom). Both tests show that FROGS perform as well or better as UPARSE and MOTHUR in most conditions. The only condition in which FROGS does worse than UPARSE is small community size (20). 
+We present the results of the paired tests, either parametric (t-test, top) or non-parametric (signed rank test, bottom). Both tests show that FROGS perform as well or better as UPARSE and MOTHUR in most conditions. The only condition in which FROGS does worse than UPARSE is small community size (20). It also does better than QIIME in most settings, with the exception of large communities (size > 200) with uniform abundance studied using the V4V4 region.
 
 The real strength of FROGS lies in its ability ot give a more accurate view of large communities (size > 200) at fine scales (Species or Genus level). 
+
+#### Paired t-test
 
 ```{r utax-batch-t-test, ref.label="batch-t-test"}
 ```
 
-```{r utax-batch-t-test-plot, fig.width=10, fig.height=12, fig.cap = "Comparison of FROGS to competing methods using paired t-test.", ref.label="batch-t-test-plot"}
+```{r utax-batch-t-test-plot, fig.width=10, fig.height=15, ref.label="batch-t-test-plot"}
 ```
+
+#### Signed rank test
 
 ```{r utax-batch-wilcox-test-np, ref.label="batch-wilcox-test-np"}
 ```
 
-```{r utax-batch-wilcox-test-plot, fig.width=10, fig.height=12, fig.cap = "Comparison of FROGS to competing methods using signed rank tests.", ref.label="batch-wilcox-test-plot"}
+```{r utax-batch-wilcox-test-plot, fig.width=10, fig.height=15, ref.label="batch-wilcox-test-plot"}
 ```
 
-#### False Positive and False Negative OTUs
+### False Positive and False Negative OTUs
 
 The same paired test as in the previous section reveal that FROGS strictly outperforms MOTHUR in terms of both FP and FN taxas. It also produces less FN than UPARSE. Additionnally, it produces less FP than UPARSE for uniform distributions and more power law ones. Overall, FROGS produces less FP and less FN than either of UPARSE and MOTHUR for high community sizes (>200 for uniform distributions, >1000 for power law distributions). 
+
+#### Paired t-test
 
 ```{r utax-batch-t-test-otus, ref.label="batch-t-test-otus"}
 ```
 
-```{r utax-batch-t-test-otus-plot, fig.width=10, fig.height=12, ref.label="batch-t-test-otus-plot"}
+```{r utax-batch-t-test-otus-plot, fig.width=10, fig.height=15, ref.label="batch-t-test-otus-plot"}
 ```
+
+#### Signed rank test
 
 ```{r utax-batch-wilcox-test-np-otus, warning=FALSE, ref.label="batch-wilcox-test-np-otus"}
 ```
 
-```{r utax-batch-wilcox-test-plot-otus, fig.width=10, , fig.height=12, ref.label="batch-wilcox-test-plot-otus"}
+```{r utax-batch-wilcox-test-plot-otus, fig.width=10, , fig.height=15, ref.label="batch-wilcox-test-plot-otus"}
 ```
 
 
-## Synthetic Communities 
+# Synthetic Communities 
 
 Due to the different design used for synthetic communities, we going to perform focused comparisons of the samples. 
 
@@ -409,10 +369,10 @@ data <- read.table("reel.tsv", sep = "\t", header = TRUE)
 ```
 
 ```{r real-change-method-order}
-data.2 <- data.2 %>% mutate(method = factor(method, levels = c("uparse", "mothur")))
+data.2 <- data.2 %>% mutate(method = factor(method, levels = c("uparse", "mothur", "qiime")))
 ```
 
-### Amplicon Effect 
+## Amplicon Effect 
 
 We study the amplicon effect on the even community with 20 species as it is the only one for which different amplicons were used. We represent the trends observed at different taxonomic levels. UPARSE seems to do better than FROGS and MOTHUR but there is only one sample per amplicon so we can't assess the significance of that trend. 
 
@@ -423,18 +383,18 @@ p <- ggplot(filter(data, abundance_law == "even" & set_number == "set1"), aes(x 
 plot(p)
 ```
 
-### Abundance Distribution Effect
+## Abundance Distribution Effect
 
 We study the abundance distribution effect on the community with 20 species sequenced with the V3V4 amplicon region. FROGS is better than MOTHUR and UPARSE on the staggered community and worse on the even one... 
 
-```{r distribution-effect-paired-plot, fig.width = 8, fig.height = 6}
-p <- ggplot(filter(data.2, amplicon == "V3V4" & nb_OTU == 20), aes(x = method, y = frogs - divergence)) + geom_point() + geom_boxplot(aes(fill = method)) + facet_grid(abundance_law ~ rank) + scale_color_manual(name = "Competitor", values = manual.palette) + scale_fill_manual(name = "Competitor", values = manual.palette) + theme_bw() + geom_hline(yintercept = 0, col = "grey60") + ylab("Frogs excess divergence")
+```{r distribution-effect-paired-plot, fig.width = 8, fig.height = 4.5}
+p <- ggplot(filter(data.2, amplicon == "V3V4" & nb_OTU == 20), aes(x = method, y = frogs - divergence)) + geom_point() + geom_boxplot(aes(fill = method)) + facet_grid(abundance_law ~ rank) + scale_color_manual(name = "Competitor", values = manual.palette) + scale_fill_manual(name = "Competitor", values = manual.palette) + theme_bw() + geom_hline(yintercept = 0, col = "grey60") + ylab("Frogs excess divergence") + theme(axis.text.x = element_text(angle = 90))
 plot(p)
 ```
 
 Although the base divergence is not very satisfying on either distribution. 
-```{r distribution-effect-boxplot, fig.width = 8, fig.height = 6}
-p <- ggplot(filter(data, amplicon == "V3V4", nb_OTU == 20, method == "frogs"), aes(x = method, y = divergence)) + geom_point() + geom_boxplot(aes(fill = method)) + facet_grid(abundance_law ~ rank) + scale_color_manual(values = manual.palette) + scale_fill_manual(values = manual.palette) + theme_bw() + ylab("Frogs divergence")
+```{r distribution-effect-boxplot, fig.width = 8, fig.height = 4.5}
+p <- ggplot(filter(data, amplicon == "V3V4", nb_OTU == 20, method == "frogs"), aes(x = method, y = divergence)) + geom_point() + geom_boxplot(aes(fill = method)) + facet_grid(abundance_law ~ rank) + scale_color_manual(values = manual.palette) + scale_fill_manual(values = manual.palette) + theme_bw() + ylab("Frogs divergence") + theme(axis.text.x = element_text(angle = 90))
 plot(p)
 ```
 
@@ -450,29 +410,31 @@ data.t.test <- data.2 %>% filter(amplicon == "V3V4", nb_OTU == 20) %>%
   mutate(best = factor(best, levels = c("frogs", "tied", "competitor")))
 ```
 
-```{r real-distribution-t-test-plot, fig.width=8, fig.height=5}
+```{r real-distribution-t-test-plot, fig.width=8, fig.height=8}
 p <- ggplot(mapping = aes(x = rank, fill = best)) + facet_grid(abundance_law ~ nb_OTU) + theme_bw() + scale_fill_manual(values = manual.palette) + theme(axis.text.x = element_text(angle = 90))
 plot.list <- generate_barplot(p, data = data.t.test, vbl = "method", ylab = "Number of communities")
 grid_arrange_shared_legend(plot.list, ncol = 2)
 ```
 
-### Comparison on a Toy Community
+## Comparison on a Toy Community
 
 Finally, we compare the three methods on a toy community with 20 species and even abundances. We have  19 replicates for this community, enough to use either the signed rank test and the paired t-test. Once again FROGS base divergence level is not fantastic
-```{r real-method-effect-4-species-boxplot, fig.width = 8, fig.height = 5}
+```{r real-method-effect-4-species-boxplot, fig.width = 8, fig.height = 4}
 p <- ggplot(filter(data, nb_OTU == 4, method == "frogs"), aes(x = method, y = divergence)) + geom_point(aes(color = method)) + geom_boxplot(aes(fill = method)) + facet_grid(~rank) + scale_color_manual(values = manual.palette) + scale_fill_manual(values = manual.palette) + scale_y_continuous(lim = c(0, NA)) + theme_bw()
 plot(p)
 ```
 
 but in line with divergences obtained by competitors
-```{r real-method-effect-4-species-paired-plot, fig.width = 8, fig.height = 5}
+```{r real-method-effect-4-species-paired-plot, fig.width = 8, fig.height = 4}
 p <- ggplot(filter(data.2, nb_OTU == 4), aes(x = method, y = frogs - divergence)) + geom_point() + geom_boxplot(aes(fill = method)) + facet_grid(~ rank) + scale_color_manual(name = "Competitor", values = manual.palette) + scale_fill_manual(name = "Competitor", values = manual.palette) + theme_bw() + geom_hline(yintercept = 0, col = "grey60") + ylab("Frogs excess divergence")
 plot(p)
 ```
 
 The statistical analyses confirms the graphical diagnostic of the boxplot: FROGS is generally better than MOTHUR and tied with UPARSE, except at the Genus rank where it outperforms both of them. It also performs worse than UPARSE at the Phylum rank (for the paired t-test)
 
-```{r real-method-t-test-4-species, fig.width=8, fig.height=5}
+## Paired t-test on divergence
+
+```{r real-method-t-test-4-species, fig.width=8, fig.height=8}
 data.t.test <- data.2 %>% filter(nb_OTU == 4) %>% 
   group_by(databank, nb_OTU, dataset, amplicon, abundance_law, rank, method) %>% 
   summarize(pval = t.test(frogs, divergence, paired = TRUE)$p.value, 
@@ -480,15 +442,15 @@ data.t.test <- data.2 %>% filter(nb_OTU == 4) %>%
   mutate(best = ifelse(measure >0, "competitor", "frogs")) %>% 
   mutate(best = ifelse(pval < 0.05, best, "tied")) %>%
   mutate(best = factor(best, levels = c("frogs", "tied", "competitor")))
-data.t.test %>% select(measure, pval, best) %>% head()
 ```
 
-```{r real-method-t-test-4-species-plot, fig.width=8, fig.height=5}
+```{r real-method-t-test-4-species-plot, fig.width=8, fig.height=8}
 p <- ggplot(mapping = aes(x = rank, fill = best)) + facet_grid(abundance_law ~ nb_OTU) + theme_bw() + scale_fill_manual(values = manual.palette) + theme(axis.text.x = element_text(angle = 90))
 plot.list <- generate_barplot(p, data = data.t.test, vbl = "method", ylab = "Number of communities")
 grid_arrange_shared_legend(plot.list, ncol = 2)
 ```
 
+## Signed rank test on divergence
 
 ```{r real-method-wilcox-test-4-species}
 data.wilcox.test <- data.2 %>% filter(nb_OTU == 4) %>% 
@@ -501,7 +463,7 @@ data.wilcox.test <- data.2 %>% filter(nb_OTU == 4) %>%
 ```
 
 
-```{r real-method-wilcox-test-4-species-plot, fig.width=8, fig.height=5}
+```{r real-method-wilcox-test-4-species-plot, fig.width=8, fig.height=8}
 p <- ggplot(mapping = aes(x = rank, fill = best)) + facet_grid(abundance_law ~ nb_OTU) + theme_bw() + scale_fill_manual(values = manual.palette) + theme(axis.text.x = element_text(angle = 90))
 plot.list <- generate_barplot(p, data = data.wilcox.test, vbl = "method", ylab = "Number of communities")
 grid_arrange_shared_legend(plot.list, ncol = 2)
