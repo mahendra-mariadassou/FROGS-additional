@@ -90,7 +90,7 @@ Dans data.2, *divergence* correspond à la divergence mesurée sur une méthode 
 
 Finalement on change l'ordre des méthodes pour que les panels soient dans le bon ordre dans les graphiques
 ```{r data-change-method-order}
-data.2 <- data.2 %>% mutate(method = factor(method, levels = c("uparse", "uparse_sop", "mothur", "mothur_sop", "qiime", "qiime_sop")))
+data.2 <- data.2 %>% mutate(method = factor(method, levels = c("uparse", "mothur", "qiime")))
 ```
 
 
@@ -100,7 +100,7 @@ data.2 <- data.2 %>% mutate(method = factor(method, levels = c("uparse", "uparse
 
 Avant de s'attaquer aux tests, on va comparer visuellement les niveaux de divergence obtenus. Pour insister sur la structure pairée des données (les divergences sont mesurées sur les **mêmes échantillons**) et sur le fait que Frogs est la méthode de référence, on va comparer les taux de divergences de Mothur à Frogs et de Uparse à Frogs. 
 
-```{r plot-data-raw, fig.width=12, fig.height=15, message=FALSE}
+```{r plot-data-raw, fig.width=12, fig.height=10, message=FALSE}
 p <- ggplot(data = data.2, mapping = aes(x = frogs, y = divergence, color = abundance_law, shape = amplicon)) + facet_grid(rank ~ nb_OTU) + geom_abline(slope = 1, intercept = 0) + theme_bw() + scale_x_log10() + scale_y_log10() + xlab("divergence frogs")
 plot.list <- generate_pointplot(p, data = data.2, vbl="method", ylab = "Divergence competitor")
 grid_arrange_shared_legend(plot.list, ncol = 2)
@@ -108,35 +108,38 @@ grid_arrange_shared_legend(plot.list, ncol = 2)
 
 On remarque que l'immense majorité des échantillons sont au dessus ou proche de la première bissectrice (droite y = x), ce qui signifie que FROGS a des performances meilleures ou comparables à ses deux concurrents. 
 
-On peut aussi adopter une représentation plus classique des résultats à base de boxplot. Cette dernière montre que les performances de qiime_sop sont extrêmement mauvaises. 
-```{r plot-data-raw-boxplot, fig.width=12, fig.height=10, warning=FALSE}
-p <- ggplot(data, mapping = aes(x = method, y = divergence, fill = method, color = method)) + facet_grid(rank ~ nb_OTU, scales = "free_y") + theme_bw() + scale_y_continuous(limits = c(0, NA)) + theme(axis.text.x = element_text(angle = 90)) + scale_fill_manual(values = manual.palette, guide = guide_legend(byrow = TRUE)) + scale_color_manual(values = manual.palette, guide = "none") + xlab(NULL)
-plot.list <- generate_boxplot(p, data %>% mutate(subset = interaction(amplicon, abundance_law)), 
-                              vbl = "subset", ylab = "Divergence")
-grid_arrange_shared_legend(plot.list, ncol = 2)
+On peut aussi adopter une représentation plus classique des résultats à base de boxplot. Cette dernière montre qu'une distribution uniforme conduit à de plus grandes divergences, que mothur et uparse ont l'air moins bon sur des communautés complexes et enfin que mothur produit beaucoup plus d'outliers que les autres. 
+```{r plot-data-raw-boxplot, fig.width=10, fig.height=8, warning=FALSE}
+# p <- ggplot(data, mapping = aes(x = method, y = divergence, fill = method, color = method)) + facet_grid(rank ~ nb_OTU, scales = "free_y") + theme_bw() + scale_y_continuous(limits = c(0, NA)) + theme(axis.text.x = element_text(angle = 90)) + scale_fill_manual(values = manual.palette, guide = guide_legend(byrow = TRUE)) + scale_color_manual(values = manual.palette, guide = "none") + xlab(NULL)
+# plot.list <- generate_boxplot(p, data %>% mutate(subset = interaction(amplicon, abundance_law)), 
+#                               vbl = "subset", ylab = "Divergence")
+# grid_arrange_shared_legend(plot.list, ncol = 2)
+p <- ggplot(data, mapping = aes(x = interaction(amplicon, abundance_law), y = divergence, fill = method, color = method)) + facet_grid(rank ~ nb_OTU, scales = "free_y") + theme_bw() + scale_y_continuous(limits = c(0, NA)) + theme(axis.text.x = element_text(angle = 90)) + scale_fill_manual(values = manual.palette, guide = guide_legend(byrow = TRUE)) + scale_color_manual(values = manual.palette, guide = "none") + xlab(NULL) +
+  geom_boxplot(outlier.size = 0.8) + geom_boxplot(aes(color = NULL), outlier.color = "transparent")
+plot(p)
 ```
 
-Ou exclure qiime_sop pour plus de lisibilité. Les performances des différentes méthodes sont alors beaucoup plus comparables mais FROGS semble avoir une divergence plus faible que les autres.  
-```{r plot-data-raw-boxplot-no-qiime, fig.width=12, fig.height=10, warning=FALSE, dependson="plot-data-raw-boxplot"}
-plot.list <- generate_boxplot(p, data %>% mutate(subset = interaction(amplicon, abundance_law)) %>% filter(method != "qiime_sop"), 
-                              vbl = "subset", ylab = "Divergence")
-grid_arrange_shared_legend(plot.list, ncol = 2)
+On produit la même figure mais après enlevé les données de mothur pour filtrer les divergences trop élevées. Les valeurs de divergence sont très comparables entre les 3 méthodes mais frogs et qiime semblent faire mieux que uparse, notamment pour les communautés complexes. 
+```{r plot-data-raw-boxplot-no-mothur, fig.width=10, fig.height=8, warning=FALSE}
+p <- ggplot(data %>% filter(method != "mothur"), mapping = aes(x = interaction(amplicon, abundance_law), y = divergence, fill = method, color = method)) + facet_grid(rank ~ nb_OTU, scales = "free_y") + theme_bw() + scale_y_continuous(limits = c(0, NA)) + theme(axis.text.x = element_text(angle = 90)) + scale_fill_manual(values = manual.palette, guide = guide_legend(byrow = TRUE)) + scale_color_manual(values = manual.palette, guide = "none") + xlab(NULL) +
+  geom_boxplot(outlier.size = 0.8) + geom_boxplot(aes(color = NULL), outlier.color = "transparent")
+plot(p)
 ```
 
-On peut aussi se concentrer sur les performances de FROGS en termes de divergence. De façon attendue, le taux de divergence augmente avec la finesse du rang taxonomique. La divergence est également plus élevée pour la région V4V4 que pour la V3V4 et plus élevée pour une distribution uniforme que pour une distribution en loi de puissance. 
+Enfin, on peut se concentrer sur les résultats de FROGS en termes de divergence. De façon attendue, le taux de divergence augmente avec la finesse du rang taxonomique. La divergence est également plus élevée pour la région V4V4 que pour la V3V4 et plus élevée pour une distribution uniforme que pour une distribution en loi de puissance. 
 ```{r plot-frogs-only-divergence, fig.width=10, fig.height=5, warning=FALSE}
 p <- ggplot(filter(data, method == "frogs"), mapping = aes(x = rank, y = divergence, fill = method, alpha = amplicon)) +
   facet_grid(abundance_law ~ nb_OTU, scales = "fixed") + 
   geom_boxplot() + 
   theme_bw() + 
-  scale_y_continuous(limits = c(0, 12)) + theme(axis.text.x = element_text(angle = 90)) + scale_fill_manual(values = manual.palette) + 
+  scale_y_continuous(limits = c(0, 20)) + theme(axis.text.x = element_text(angle = 90)) + scale_fill_manual(values = manual.palette) + 
   scale_alpha_discrete(guide = guide_legend(override.aes = list(fill = "grey10")), range = c(0.2, 0.6)) + 
   xlab(NULL) + ggtitle("Divergence")
 plot(p)
 ```
 
 ### Faux positifs, faux négatifs
-On peut aussi considérer le nombre de faux positifs et faux négatifs produits par chacune des 5 méthodes. La région V3V4 produit plus de faux positifs et moins de faux négatifs que la région V4V4. On voit bien que Qiime et Qiime (SOP) ont le même comportement (assez mauvais) pour les faux positifs que Mothur et Mothur (SOP) sur V4V4. 
+On peut aussi considérer le nombre de faux positifs et faux négatifs produits par chacune des 5 méthodes. La région V3V4 produit plus de faux positifs et moins de faux négatifs que la région V4V4. On voit bien que Qiime a le même comportement (assez mauvais) pour les faux positifs que Mothur. 
 ```{r plot-fp-fn-boxplot, fig.width=9, fig.height=8, warning=FALSE, message = FALSE}
 p <- ggplot(data.otus, mapping = aes(x = method, fill = method, alpha = amplicon)) + facet_grid(nb_OTU ~ abundance_law, scales = "free_y") + theme_bw() + scale_y_continuous(limits = c(0, NA)) + theme(axis.text.x = element_text(angle = 90)) + scale_fill_manual(values = manual.palette, guide = guide_legend(byrow = TRUE)) + scale_color_manual(values = manual.palette) + scale_alpha_discrete(guide = guide_legend(override.aes = list(fill = "grey10")), range = c(0.2, 0.6))
 p.fn <- p + geom_boxplot(aes(y = -OTU.lost)) + ylab(NULL) + ggtitle("False Negative OTUs")
@@ -144,17 +147,14 @@ p.fp <- p + geom_boxplot(aes(y = OTU.false)) + ylab(NULL) + ggtitle("False Posit
 grid_arrange_shared_legend(p.fp, p.fn, ncol = 2)
 ```
 
-Ou seulement par frogs, uparse et leurs variantes SOP. On voit clairement que FROGS a de meilleurs performances en termes de faux négatifs et des performances comparables en termes de faux positifs (meilleurs pour une distribution uniforme, moins bonnes pour une distribution loi de puissance). 
+On se limite donc a FROGS et uparse pour mieux les comparer. On voit clairement que FROGS a de meilleurs performances en termes de faux négatifs et des performances comparables en termes de faux positifs (meilleurs pour une distribution uniforme, moins bonnes pour une distribution loi de puissance). 
 
 ```{r plot-fp-fn-boxplot-no-mothur, fig.width=9, fig.height=8, warning=FALSE, message = FALSE}
-p <- ggplot(filter(data.otus, ! (method %in% c("mothur", "mothur_sop", "qiime", "qiime_sop"))), mapping = aes(x = method, fill = method, alpha = amplicon)) + facet_grid(nb_OTU ~ abundance_law, scales = "free_y") + theme_bw() + scale_y_continuous(limits = c(0, NA)) + theme(axis.text.x = element_text()) + scale_fill_manual(values = manual.palette, guide = guide_legend(byrow = TRUE)) + scale_color_manual(values = manual.palette) + scale_alpha_discrete(guide = guide_legend(override.aes = list(fill = "grey10")), range = c(0.2, 0.6))
+p <- ggplot(filter(data.otus, ! (method %in% c("mothur", "qiime"))), mapping = aes(x = method, fill = method, alpha = amplicon)) + facet_grid(nb_OTU ~ abundance_law, scales = "free_y") + theme_bw() + scale_y_continuous(limits = c(0, NA)) + theme(axis.text.x = element_text()) + scale_fill_manual(values = manual.palette, guide = guide_legend(byrow = TRUE)) + scale_color_manual(values = manual.palette) + scale_alpha_discrete(guide = guide_legend(override.aes = list(fill = "grey10")), range = c(0.2, 0.6))
 p.fn <- p + geom_boxplot(aes(y = -OTU.lost)) + ylab(NULL) + ggtitle("False Negative OTUs")
 p.fp <- p + geom_boxplot(aes(y = OTU.false)) + ylab(NULL) + ggtitle("False Positive OTUs")
 grid_arrange_shared_legend(p.fp, p.fn, ncol = 2)
 ```
-
-
-
 
 # Comparaison des méthodes: divergence
 
@@ -181,7 +181,7 @@ data.t.test %>% select(measure, pval, best) %>% head()
 Dans le tableau précédent, la colonne *mesure* représente l'écart de divergence moyenn entre frogs et son compétiteur (pour une communauté théorique donnée), *pval* correspond à la p-valeur associée à cette écart et *best* indique la meilleure des deux méthodes (*frogs*, *competitor* ou *tied* si on ne peut pas les distinguer).
 
 Il ne reste plus qu'à représenter les données pour savoir dans quelles circonstances frogs fait mieux que la compétition.
-```{r batch-t-test-plot, fig.width=10, fig.height=16}
+```{r batch-t-test-plot, fig.width=10, fig.height=10}
 p <- ggplot(mapping = aes(x = rank, fill = best)) + facet_grid(abundance_law + amplicon ~ nb_OTU) + theme_bw() + scale_fill_manual(values = manual.palette) + theme(axis.text.x = element_text(angle = 90))
 plot.list <- generate_barplot(p, data = data.t.test, vbl = "method", ylab = "Number of communities")
 grid_arrange_shared_legend(plot.list, ncol = 2)
@@ -210,7 +210,7 @@ data.wilcox.test %>% select(measure, pval, best) %>% head()
 ```
 
 Il ne reste plus qu'à représenter les données pour savoir dans quelles circonstances frogs fait mieux que la compétition.
-```{r batch-wilcox-test-plot, fig.width=10, fig.height=16}
+```{r batch-wilcox-test-plot, fig.width=10, fig.height=10}
 p <- ggplot(mapping = aes(x = rank, fill = best)) + facet_grid(abundance_law + amplicon ~ nb_OTU) + theme_bw() + scale_fill_manual(values = manual.palette) + theme(axis.text.x = element_text(angle = 90))
 plot.list <- generate_barplot(p, data = data.wilcox.test, vbl = "method", ylab = "Number of communities")
 grid_arrange_shared_legend(plot.list, ncol = 2)
@@ -259,10 +259,7 @@ p <- ggplot(data.dunn.test, mapping = aes(x = rank, fill = best)) + facet_grid(a
 p <- p + geom_bar() + ylab("Number of communities")
 plot(p)
 ```
-Dans tous les cas, FROGS fait mieux ou armes égales avec ses concurrents. Le plus grande nombre d'égalités observées ici correspond à:
-
-- la moindre puissance du test non-paramétrique
-- le relativement grand nombre de comparaison (frogs contre chacune des 6 méthodes concurrentes)
+Dans tous les cas, FROGS fait mieux ou armes égales avec ses concurrents. Le plus grande nombre d'égalités observées ici correspond à la moindre puissance du test non-paramétrique par rapport à sa version paramétrique. 
 
 # Comparaison des méthodes: faux positifs et faux négatifs
 
@@ -283,7 +280,7 @@ data.otus.2 <- data.otus %>% melt(id.vars = c("databank", "nb_OTU", "dataset", "
 
 Puis on change l'ordre des méthodes
 ```{r data-otus-change-order}
-data.otus.2 <- data.otus.2 %>% mutate(method = factor(method, levels = c("uparse", "uparse_sop", "mothur", "mothur_sop", "qiime", "qiime_sop")))
+data.otus.2 <- data.otus.2 %>% mutate(method = factor(method, levels = c("uparse", "mothur", "qiime")))
 ```
 
 
@@ -306,7 +303,7 @@ data.otus.t.test %>% select(measure, pval, best) %>% head()
 Dans le tableau précédent, la colonne *mesure* représente l'écart de divergence moyenn entre frogs et son compétiteur (pour une communauté théorique donnée), *pval* correspond à la p-valeur associée à cette écart et *best* indique la meilleure des deux méthodes (*frogs*, *competitor* ou *tied* si on ne peut pas les distinguer).
 
 Il ne reste plus qu'à représenter les données pour savoir dans quelles circonstances frogs fait mieux que la compétition.
-```{r batch-t-test-otus-plot, fig.width=10, fig.height=15}
+```{r batch-t-test-otus-plot, fig.width=10, fig.height=10}
 p <- ggplot(mapping = aes(x = error_type, fill = best)) + facet_grid(abundance_law + amplicon ~ nb_OTU) + theme_bw() + scale_fill_manual(values = manual.palette) + theme(axis.text.x = element_text(angle = 90)) + xlab("Error Type")
 plot.list <- generate_barplot(p, data = data.otus.t.test, vbl = "method", ylab = "Number of communities")
 grid_arrange_shared_legend(plot.list, ncol = 2)
@@ -330,7 +327,7 @@ data.otus.wilcox.test %>% select(measure, pval, best) %>% head()
 ```
 
 Il ne reste plus qu'à représenter les données pour savoir dans quelles circonstances frogs fait mieux que la compétition.
-```{r batch-wilcox-test-plot-otus, fig.width=10, fig.height=15}
+```{r batch-wilcox-test-plot-otus, fig.width=10, fig.height=10}
 p <- ggplot(mapping = aes(x = error_type, fill = best)) + facet_grid(abundance_law + amplicon ~ nb_OTU) + theme_bw() + scale_fill_manual(values = manual.palette) + theme(axis.text.x = element_text(angle = 90)) + xlab("Error Type")
 plot.list <- generate_barplot(p, data = data.otus.wilcox.test, vbl = "method", ylab = "Number of communities")
 grid_arrange_shared_legend(plot.list, ncol = 2)
