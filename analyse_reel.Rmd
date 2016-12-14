@@ -179,7 +179,7 @@ plot.list <- generate_barplot(p, data = data.t.test, vbl = "method", ylab = "Num
 grid_arrange_shared_legend(plot.list, ncol = 2)
 ```
 
-Et on peut faire la même chose en non paramétrique (on a 19 échantillons, assez pour faire un test de mann-withney pairé)
+Et on peut faire la même chose en non paramétrique (on a 10 échantillons, assez pour faire un test de mann-withney pairé)
 ```{r method-wilcox-test-4-species}
 data.wilcox.test <- data.2 %>% filter(nb_OTU == 4) %>% 
   group_by(databank, nb_OTU, dataset, amplicon, abundance_law, rank, method) %>% 
