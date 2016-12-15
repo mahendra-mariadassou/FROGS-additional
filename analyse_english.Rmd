@@ -174,7 +174,7 @@ The lower number of false positive in under power law abundances could be due to
 
 ```{r plot-fp-fn-boxplot-no-mothur, fig.width=10, fig.height=8, warning=FALSE, message = FALSE}
 p <- ggplot(data.otus, mapping = aes(x = method, fill = method, y = divergence, alpha = amplicon)) + facet_grid(nb_OTU ~ abundance_law, scales = "free_y") + theme_bw() + scale_y_continuous(limits = c(0, NA)) + theme(axis.text.x = element_text(angle = 90)) + scale_fill_manual(values = manual.palette) + scale_color_manual(values = manual.palette) + scale_alpha_discrete(guide = guide_legend(override.aes = list(fill = "grey10")), range = c(0.2, 0.6)) + ylab(NULL)
-excluded.methods <- c("mothur", "mothur_sop", "qiime", "qiime_sop")
+excluded.methods <- c("mothur", "mothur_sop", "qiime", "qiime_sop", "mothur (Mult Aff)", "mothur (SOP)", "qiime (Mult Aff)", "qiime (SOP)")
 p.fn <- p + geom_boxplot(data = filter(data.otus, error_type == "FN", !(method %in% excluded.methods))) + ggtitle("False Negative OTUs")
 p.fp <- p + geom_boxplot(data = filter(data.otus, error_type == "FP", !(method %in% excluded.methods))) + ggtitle("False Positive OTUs")
 grid_arrange_shared_legend(p.fp, p.fn, ncol = 2)
@@ -273,7 +273,8 @@ data <- read.table("utax.tsv", sep = "\t", header = TRUE)
 ```
 
 ```{r utax-change-method-order}
-data.2 <- data.2 %>% mutate(method = factor(method, levels = c("uparse", "uparse_sop", "mothur", "mothur_sop", "qiime", "qiime_sop")))
+data.2 <- data.2 %>% mutate(method = factor(method, levels = c("uparse_sop", "uparse", "mothur_sop", "mothur", "qiime_sop", "qiime"), 
+                                            labels = c("uparse (SOP)", "uparse (Mult Aff)", "mothur (SOP)", "mothur (Mult Aff)", "qiime (SOP)", "qiime (Mult Aff)")))
 ```
 
 ```{r utax-split-divergence-and-otu, ref.label="split-divergence-and-otu"}
@@ -283,13 +284,13 @@ data.2 <- data.2 %>% mutate(method = factor(method, levels = c("uparse", "uparse
 
 ### Divergence 
 
-The comparisons of divergence at the sample level in the scatterplots shows that on average, FROGS has comparable but better performances than MOTHUR and UPARSE: most samples end up in the upper left corner (corresponding to the region "divergence FROGS < divergence competitor") but no too far away from the first diagonal (grey line). 
+The comparisons of divergence at the sample level in the scatterplots shows that on average, FROGS has comparable but better performances than MOTHUR and UPARSE: most samples end up in the upper left corner (corresponding to the region "divergence FROGS < divergence competitor") but no too far away from the first diagonal (grey line). It also has comparable performances to QIIME. 
 
 
 ```{r utax-plot-data-raw, fig.width=10, fig.height=15, message=FALSE, warning=FALSE, ref.label="plot-data-raw"}
 ```
 
-A more traditional representation using boxplot of the excess divergence of FROGS, with samples from all theoretical communities pooled together, confirms the results: FROGS has similar (compared to UPARSE) or lower (compared to MOTHUR) divergence for the vast majority of samples. Note that the y-range was reduced from $[-85, 31]$ to $[-15, 3]$ in order to exclude outliers (4% of outliers with excess divergence < -15 and 0.02% with excess divergence > 3) and zoom in on the boxplots. As expected, all methods perform quite similarly up to the order level and the main differences appear at the *Family* and *Genus* levels, where MOTHUR and MOTHUR_SOP and QIIME_SOP produces much larger divergences than competing methods. The only configuration where FROGS is consistently outperformed is complex communities (number of species > 200) with uniform abundances and sequenced on the V4V4 region. In that configuration, FROGS is outperformed by QIIME. 
+A more traditional representation using boxplot of the excess divergence of FROGS, with samples from all theoretical communities pooled together, confirms the results: FROGS has similar (compared to UPARSE SOP and Mult Aff) or lower (compared to MOTHUR SOP and Mult Aff) divergence for the vast majority of samples. Note that the y-range was reduced from $[-85, 31]$ to $[-15, 3]$ in order to exclude outliers (4% of outliers with excess divergence < -15 and 0.02% with excess divergence > 3) and zoom in on the boxplots. As expected, all methods perform quite similarly up to the order level and the main differences appear at the *Family* and *Genus* levels, where MOTHUR (SOP and Mult Aff) and QIIME (SOP) produces much larger divergences than competing methods. The only configuration where FROGS is consistently outperformed is complex communities (number of species > 200) with uniform abundances and sequenced on the V4V4 region. In that configuration, FROGS is outperformed by QIIME (Mult Aff). 
 
 ```{r utax-plot-data-raw-boxplot, fig.width=10, fig.height=7, warning=FALSE, ref.label="plot-data-raw-boxplot"}
 ```
@@ -305,7 +306,7 @@ We repeat the graphical exploration of the resutls with False Positive and False
 ```{r utax-plot-fp-fn-boxplot, fig.width=10, fig.height=8, warning=FALSE, message = FALSE, ref.label="plot-fp-fn-boxplot"}
 ```
 
-A focus on FROGS and UPARSE leads to similar patterns: FROGS always produces less false negatives than UPARSE but produces a bit more false positive under power law abundance distribution and a bit less under uniform abundance distribution. 
+A focus on FROGS and UPARSE (SOP and MultAff) leads to similar patterns: FROGS always produces less false negatives than UPARSE but produces a bit more false positive under power law abundance distribution and a bit less under uniform abundance distribution. 
 
 The lower number of false positive in under power law abundances could be due to the abundance based filters used in UPARSE. 
 
@@ -316,7 +317,7 @@ The lower number of false positive in under power law abundances could be due to
 
 ### Divergence
 
-We present the results of the paired tests, either parametric (t-test, top) or non-parametric (signed rank test, bottom). Both tests show that FROGS perform as well or better as UPARSE and MOTHUR in most conditions. The only condition in which FROGS does worse than UPARSE is small community size (20). It also does better than QIIME in most settings, with the exception of large communities (size > 200) with uniform abundance studied using the V4V4 region.
+We present the results of the paired tests, either parametric (t-test, top) or non-parametric (signed rank test, bottom). Both tests show that FROGS perform as well or better as UPARSE and MOTHUR (with either SOP or multi affiliations) in most conditions. The only condition in which FROGS does worse than UPARSE is small community size (20). It also does better than QIIME (SOP) in all settings, and than QIIME (Mult Aff) in most settings with the exception of large communities (size > 200) with uniform abundance studied using the V4V4 region. 
 
 The real strength of FROGS lies in its ability ot give a more accurate view of large communities (size > 200) at fine scales (Species or Genus level). 
 
@@ -338,7 +339,7 @@ The real strength of FROGS lies in its ability ot give a more accurate view of l
 
 ### False Positive and False Negative OTUs
 
-The same paired test as in the previous section reveal that FROGS strictly outperforms MOTHUR in terms of both FP and FN taxas. It also produces less FN than UPARSE. Additionnally, it produces less FP than UPARSE for uniform distributions and more power law ones. Overall, FROGS produces less FP and less FN than either of UPARSE and MOTHUR for high community sizes (>200 for uniform distributions, >1000 for power law distributions). 
+The same paired test as in the previous section reveal that FROGS strictly outperforms MOTHUR in terms of both FP and FN taxas. It also produces less FN than UPARSE (SOP and Mult Aff). Additionnally, it produces less FP than UPARSE for uniform distributions and more power law ones. Overall, FROGS produces less FP and less FN than either of UPARSE and MOTHUR (for both SOP and Mult Aff variants) for high community sizes (>200 for uniform distributions, >1000 for power law distributions). 
 
 #### Paired t-test
 
@@ -359,7 +360,7 @@ The same paired test as in the previous section reveal that FROGS strictly outpe
 
 # Synthetic Communities 
 
-Due to the different design used for synthetic communities, we going to perform focused comparisons of the samples. 
+Due to the different design used for synthetic communities, we're going to perform focused comparisons of the samples. 
 
 ```{r real-data-import}
 data <- read.table("reel.tsv", sep = "\t", header = TRUE)
