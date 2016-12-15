@@ -145,7 +145,8 @@ my.paired.wilcox.test <- function(x, y, ...) {
 ###################
 manual.palette <- c("frogs"      = rgb(0, 1, 0, alpha = 0.6, maxColorValue = 1), 
                     "tied"       = "grey60", 
-                    "competitor" = rgb(1, 0, 0, alpha = 0.6, maxColorValue = 1), 
+                    ## "competitor" = rgb(1, 0, 0, alpha = 0.6, maxColorValue = 1), 
+                    "competitor" = rgb(0, 0.5, 1, alpha = 0.6, maxColorValue = 1), 
                     "mothur"     = rgb(1, 0.2, 0, alpha = 0.6, maxColorValue = 1), 
                     "mothur_sop" = rgb(1, 0.5, 0, alpha = 0.6, maxColorValue = 1),                   
                     "uparse"     = rgb(0, 0.2, 1, alpha = 0.6, maxColorValue = 1), 
