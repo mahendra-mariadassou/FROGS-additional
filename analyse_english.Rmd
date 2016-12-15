@@ -384,7 +384,7 @@ data <- read.table("reel.tsv", sep = "\t", header = TRUE)
 data <- data %>% mutate(method = factor(method, levels = c("frogs", "uparse", "mothur", "qiime"), 
                                         labels = c("frogs", "uparse (MA)", "mothur (MA)", "qiime (MA)")))
 data.2 <- data.2 %>% mutate(method = factor(method, levels = c("uparse", "mothur", "qiime"), 
-                                            labels = c("frogs", "uparse (MA)", "mothur (MA)", "qiime (MA)")))
+                                            labels = c("uparse (MA)", "mothur (MA)", "qiime (MA)")))
 ```
 
 ## Amplicon Effect 
