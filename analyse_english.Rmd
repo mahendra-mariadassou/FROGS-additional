@@ -148,7 +148,7 @@ grid_arrange_shared_legend(p.fp, p.fn, ncol = 2)
 
 ```{r plot-fp-fn-boxplot-no-mothur, warning=FALSE, message = FALSE, eval = FALSE}
 p <- ggplot(data.otus, mapping = aes(x = method, fill = method, y = divergence, alpha = amplicon)) + facet_grid(nb_OTU ~ abundance_law, scales = "free_y") + theme_bw() + scale_y_continuous(limits = c(0, NA)) + theme(axis.text.x = element_text(angle = 90)) + scale_fill_manual(values = manual.palette) + scale_color_manual(values = manual.palette) + scale_alpha_discrete(guide = guide_legend(override.aes = list(fill = "grey10")), range = c(0.2, 0.6)) + ylab(NULL)
-excluded.methods <- c("mothur", "mothur_sop", "qiime", "qiime_sop", "mothur (Mult Aff)", "mothur (SOP)", "qiime (Mult Aff)", "qiime (SOP)")
+excluded.methods <- c("mothur", "mothur_sop", "qiime", "qiime_sop", "mothur (MA)", "mothur (SOP)", "qiime (MA)", "qiime (SOP)")
 p.fn <- p + geom_boxplot(data = filter(data.otus, error_type == "FN", !(method %in% excluded.methods))) + ggtitle("False Negative OTUs")
 p.fp <- p + geom_boxplot(data = filter(data.otus, error_type == "FP", !(method %in% excluded.methods))) + ggtitle("False Positive OTUs")
 grid_arrange_shared_legend(p.fp, p.fn, ncol = 2)
@@ -397,7 +397,7 @@ The lower number of false positive in under power law abundances could be due to
 
 We present the results of the paired tests, either parametric (t-test, top) or non-parametric (signed rank test, bottom). Both tests show that FROGS perform as well or better as UPARSE (MA) and MOTHUR (MA) in most conditions. The only condition in which FROGS does worse than UPARSE (MA) is small community size (20). It also does better than QIIME (MA) in most settings, with the exception of large communities (size > 200) with uniform abundance studied using the V4V4 region. 
 
-The real strength of FROGS lies in its ability ot give a more accurate view of large communities (size > 200) at fine scales (Species or Genus level). 
+The real strength of FROGS lies in its ability ot give a more accurate view of large communities (size > 200) at fine scales (Genus level). 
 
 #### Paired t-test
 
