@@ -346,7 +346,27 @@ The real strength of FROGS lies in its ability ot give a more accurate view of l
 
 ### Conditions where QIIME (MA) outperforms FROGS
 
-graphique des boxplots des écarts de divergene pour FROGS et QIIME (MA)
+A focus on the performance of QIIME (MA) reveals that QIIME (MA) indeed performs better than FROGS with uniform distribution when using the V4V4 amplicon region. However and although significant, the differences are small in that case: less than 2 percentage points in all cases and most marked at the Genus level where the divergences of both FROGS and QIIME (MA) are quite high.  
+
+```{r qiime-better-frogs, fig.width=10, fig.height=6, warning=FALSE}
+p1 <- ggplot(data.2 %>% filter(method == "qiime (MA)"), 
+            mapping = aes(x = rank, y = (frogs - divergence), fill = method)) + 
+  facet_grid(amplicon + abundance_law ~ nb_OTU, scales = "free_y") + 
+  theme_bw() + scale_y_continuous() + theme(axis.text.x = element_text(angle = 90)) + 
+  scale_fill_manual(values = manual.palette, guide = guide_legend(byrow = TRUE)) + scale_color_manual(values = manual.palette, guide = "none") + 
+  xlab("Number of OTUs") + ylab("Frogs excess divergence") + 
+  geom_boxplot(aes(group = rank), outlier.size = 0.8) + geom_hline(aes(yintercept = 0), color = "gray65")
+p2 <- ggplot(data %>% filter(method %in% c("frogs", "qiime (MA)")), 
+            mapping = aes(x = rank, y = (divergence), fill = method)) + 
+  facet_grid(amplicon + abundance_law ~ nb_OTU, scales = "free_y") + 
+  theme_bw() + scale_y_continuous(limits = c(0, 10), breaks = c(0, 3, 6, 9)) + theme(axis.text.x = element_text(angle = 90)) + 
+  scale_fill_manual(values = manual.palette, guide = guide_legend(byrow = TRUE)) + scale_color_manual(values = manual.palette, guide = "none") + 
+  xlab("Number of OTUs") + ylab("Divergence") + 
+  geom_boxplot(aes(group = interaction(rank, method), color = method), outlier.size = 0.8) + 
+  geom_boxplot(aes(group = interaction(rank, method)), outlier.color = "transparent")
+## grid_arrange_shared_legend(p2, p1, ncol = 2)
+grid.arrange(p1 + theme(legend.position = "bottom"), p2 + theme(legend.position = "bottom"), ncol = 2, widths = c(0.45, 0.55))
+```
 
 ### False Positive and False Negative OTUs
 
