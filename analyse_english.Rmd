@@ -77,7 +77,7 @@ The experimental design used for the synthetic community was sligthly different:
 read.table("reel.tsv", sep = "\t", header = TRUE) %>% group_by(nb_OTU, amplicon, abundance_law) %>% summarize(count = n()/4) %>% kable()
 ```
 
-Three samples corresponding to communities of size 20 with abundance distribution *even* were used to compare the amplicon *V3V4*, *V4V4* and *V4V5* (1 per amplicon). 8 samples corresponding to communities of size 20 and amplicon *V3V4* were used to compared abundance distribution *even* and *staggered* (4 per distribution) and finally, 19 samples (community size 4, amplicon *V3V4* and distribution *even*) were used to compare the accuracy of the different otu picking methods. 
+Three samples corresponding to communities of size 20 with abundance distribution *even* were used to compare the amplicon *V3V4*, *V4V4* and *V4V5* (1 per amplicon). 8 samples corresponding to communities of size 20 and amplicon *V3V4* were used to compared abundance distribution *even* and *staggered* (4 per distribution) and finally, 10 samples (community size 4, amplicon *V3V4* and distribution *even*) were used to compare the accuracy of the different otu picking methods. 
 
 
 # Statistical analysis of the results: Material and Methods
@@ -457,12 +457,12 @@ data.2 <- data.2 %>% mutate(method = factor(method, levels = c("uparse", "mothur
 
 ## Amplicon Effect 
 
-We study the amplicon effect on the even community with 20 species as it is the only one for which different amplicons were used. We represent the trends observed at different taxonomic levels. UPARSE (MA) seems to do better than FROGS and MOTHUR (MA) but there is only one sample per amplicon so we can't assess the significance of that trend. 
+We study the amplicon effect on the even community with 20 species as it is the only one for which different amplicons were used. We represent the trends observed at different taxonomic levels. All methods seem to give comparable results but there are no replicates per amplicon so we can't assess the significance of the observed differences. 
 
 Note that all methods have high divergences compared to simulated datasets. This may reflect experimental limitations (sequencing and amplification bias, copy number variations, etc) rather than intrinsic complexity of the synthetic community and/or differences between the methods. 
 
 ```{r amplicon-effect-paired-plot}
-p <- ggplot(filter(data, abundance_law == "even" & set_number == "set1"), aes(x = method, y = divergence)) + geom_point(aes(color = method)) + geom_line(aes(group = rank, alpha = rank)) + facet_grid(~amplicon) + scale_color_manual(values = manual.palette) + scale_y_continuous(lim = c(0, NA)) + theme_bw()
+p <- ggplot(filter(data, abundance_law == "even" & set_number == "set1"), aes(x = method, y = divergence)) + geom_point(aes(color = method)) + geom_line(aes(group = rank, alpha = rank)) + facet_grid(~amplicon) + scale_color_manual(values = manual.palette) + scale_y_continuous(lim = c(0, NA)) + theme_bw() + theme(axis.text.x = element_text(angle = 90))
 plot(p)
 ```
 
@@ -501,7 +501,7 @@ grid_arrange_shared_legend(plot.list, ncol = 2)
 
 ## Comparison on a Toy Community
 
-Finally, we compare the three methods on a toy community with 20 species and even abundances. We have  10 replicates for this community, enough to use either the signed rank test and the paired t-test. Once again FROGS base divergence level is not fantastic
+Finally, we compare the 3 methods on a toy community with 4 species and uneven abundances. We have  10 replicates for this community, enough to use either the signed rank test and the paired t-test. Once again FROGS base divergence level is not fantastic
 ```{r real-method-effect-4-species-boxplot, fig.width = 8, fig.height = 4}
 p <- ggplot(filter(data, nb_OTU == 4, method == "frogs"), aes(x = method, y = divergence)) + geom_point(aes(color = method)) + geom_boxplot(aes(fill = method)) + facet_grid(~rank) + scale_color_manual(values = manual.palette) + scale_fill_manual(values = manual.palette) + scale_y_continuous(lim = c(0, NA)) + theme_bw()
 plot(p)
@@ -509,7 +509,7 @@ plot(p)
 
 but in line with divergences obtained by competitors
 ```{r real-method-effect-4-species-paired-plot, fig.width = 8, fig.height = 4}
-p <- ggplot(filter(data.2, nb_OTU == 4), aes(x = method, y = frogs - divergence)) + geom_point() + geom_boxplot(aes(fill = method)) + facet_grid(~ rank) + scale_color_manual(name = "Competitor", values = manual.palette) + scale_fill_manual(name = "Competitor", values = manual.palette) + theme_bw() + geom_hline(yintercept = 0, col = "grey60") + ylab("Frogs excess divergence")
+p <- ggplot(filter(data.2, nb_OTU == 4), aes(x = method, y = frogs - divergence)) + geom_point() + geom_boxplot(aes(fill = method)) + facet_grid(~ rank) + scale_color_manual(name = "Competitor", values = manual.palette) + scale_fill_manual(name = "Competitor", values = manual.palette) + theme_bw() + geom_hline(yintercept = 0, col = "grey60") + ylab("Frogs excess divergence") + theme(axis.text.x = element_blank())
 plot(p)
 ```
 
