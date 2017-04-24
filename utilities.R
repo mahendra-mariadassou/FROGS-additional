@@ -5,7 +5,7 @@
 ## PLOTTING FUNCTIONS
 
 ## http://stackoverflow.com/questions/13649473/add-a-common-legend-for-combined-ggplots
-grid_arrange_shared_legend <- function(..., ncol = 1) {
+grid_arrange_shared_legend <- function(..., ncol = 1, plot = TRUE) {
   require(grid)
   plots <- list(...)
   if (length(plots) == 1) { ## already a list of plots
@@ -14,13 +14,17 @@ grid_arrange_shared_legend <- function(..., ncol = 1) {
   g <- ggplotGrob(plots[[1]] + theme(legend.position="bottom"))$grobs
   legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
   lheight <- sum(legend$height)
-  grid.arrange(
+  g <- arrangeGrob(
     do.call(arrangeGrob, c(lapply(plots, function(x)
       x + theme(legend.position="none")), ncol = ncol)),
     legend,
     nrow = 2, 
     heights = unit.c(unit(1, "npc") - lheight, lheight))
+  if (plot) plot(g)
+  invisible(g)
 }
+
+
 
 #' Title Generate a list of ggplot barplots (one per factor level) using a template p
 #'
