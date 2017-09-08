@@ -21,7 +21,7 @@ knitr::opts_chunk$set(echo = FALSE, cache = TRUE, message = FALSE,
                       cache.path = "cache/english/")
 ```
 
-```{r load-packages, echo = FALSE}
+```{r load-packages, echo = FALSE, cache = FALSE}
 library(reshape2)
 library(ggplot2)
 library(dplyr)
@@ -437,7 +437,7 @@ Overall, FROGS produces less FP and less FN than either of UPARSE (MA) and MOTHU
 ```{r silva-batch-wilcox-test-plot-otus, fig.width=10, fig.height=10, ref.label="batch-wilcox-test-plot-otus"}
 ```
 
-# Synthetic Communities 
+# Synthetic Communities (I)
 
 Due to the different design used for synthetic communities, we're going to perform focused comparisons of the samples. 
 
@@ -551,3 +551,63 @@ p <- ggplot(mapping = aes(x = rank, fill = best)) + facet_grid(abundance_law ~ n
 plot.list <- generate_barplot(p, data = data.wilcox.test, vbl = "method", ylab = "Number of communities")
 grid_arrange_shared_legend(plot.list, ncol = 2)
 ```
+
+# Synthetic Communities (II): Bokulich Datasets
+
+We compare the methods on Bokulich datasets: it consists of three experiments where a synthetic community (mock 6 to 8) made of 67 species was sequenced three times each. Mock 6 to 8 are biological replicates of the same community and the three samples for each mock are technical replicates. Since, we only have three replicates for each mock, we can use non-parametric tests and restrict ourselves to paired t-tests. 
+
+```{r bok-data-import}
+data <- read.table("bokulich678.tsv", sep = "\t", header = TRUE)
+```
+
+```{r bok-data-format, ref.label="data-format"}
+```
+
+```{r bok-change-method-order}
+data <- data %>% mutate(method = factor(method, levels = c("frogs", "uparse", "mothur", "qiime"), 
+                                        labels = c("frogs", "uparse (MA)", "mothur (MA)", "qiime (MA)")))
+data.2 <- data.2 %>% mutate(method = factor(method, levels = c("uparse", "mothur", "qiime"), 
+                                            labels = c("uparse (MA)", "mothur (MA)", "qiime (MA)"))) ## %>% 
+  ## mutate(dataset = "mock6") ## Consider all datasets as identical
+```
+
+
+## Vizualisation 
+
+### Divergence 
+
+All methods achieve comparable (and not so good) divergences at high taxonomic ranks but FROGS and UPARSE are better at the Genus level. 
+
+```{r bok-divergence-boxplot, fig.width = 8, fig.height = 4.5}
+p <- ggplot(filter(data, amplicon == "V4"), aes(x = method, y = divergence)) + geom_point() + geom_boxplot(aes(fill = method)) + facet_grid(abundance_law ~ rank) + scale_color_manual(values = manual.palette) + scale_fill_manual(values = manual.palette) + theme_bw() + ylab("Divergence") + theme(axis.text.x = element_text(angle = 90))
+plot(p)
+```
+
+FROGS exhibits sligth excess divergence over UPARSE and is comparable to MOTHUR and QIIME at high taxonomic ranks and is strictly better than them at low taxonomic ranks. 
+
+```{r bok-excess-divergence-boxplot, fig.width = 8, fig.height = 4.5}
+p <- ggplot(data.2, aes(x = method, y = frogs - divergence)) + geom_point() + geom_boxplot(aes(fill = method)) + facet_grid(abundance_law ~ rank) + scale_color_manual(values = manual.palette) + 
+              scale_fill_manual(values = manual.palette) + theme_bw() + ylab("Frogs ExcessDivergence") + 
+              theme(axis.text.x = element_text(angle = 90)) + geom_hline(yintercept = 0)
+plot(p)
+```
+
+### False Positive and False Negative OTUs
+
+Not Available
+
+## Statistical Analysis
+
+### Divergence 
+
+#### Paired t-test
+
+```{r bok-batch-t-test, ref.label="batch-t-test", warning= FALSE}
+```
+
+```{r bok-batch-t-test-plot, fig.width=10, fig.height=10, ref.label="batch-t-test-plot", warning= FALSE}
+```
+
+### False Positive and False Negative OTUs
+
+Not available
