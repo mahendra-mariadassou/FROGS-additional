@@ -554,7 +554,7 @@ grid_arrange_shared_legend(plot.list, ncol = 2)
 
 # Synthetic Communities (II): Bokulich Datasets
 
-We compare the methods on Bokulich datasets: it consists of three experiments where a synthetic community (mock 6 to 8) made of 67 species was sequenced three times each. Mock 6 to 8 are biological replicates of the same community and the three samples for each mock are technical replicates. Since, we only have three replicates for each mock, we can use non-parametric tests and restrict ourselves to paired t-tests. 
+We compare the methods on Bokulich datasets: it consists of three experiments where a synthetic community (mock 6 to 8) made of 67 species was sequenced three times each. Mock 6 to 8 are biological replicates of the same community and the three samples for each mock are technical replicates. Since, we only have three replicates for each mock, we can not use non-parametric signed-rank tests and restrict ourselves to paired t-tests. 
 
 ```{r bok-data-import}
 data <- read.table("bokulich678.tsv", sep = "\t", header = TRUE)
@@ -565,9 +565,9 @@ data <- read.table("bokulich678.tsv", sep = "\t", header = TRUE)
 
 ```{r bok-change-method-order}
 data <- data %>% mutate(method = factor(method, levels = c("frogs", "uparse", "mothur", "qiime"), 
-                                        labels = c("frogs", "uparse (MA)", "mothur (MA)", "qiime (MA)")))
+                                        labels = c("frogs", "uparse (SOP)", "mothur (SOP)", "qiime (SOP)")))
 data.2 <- data.2 %>% mutate(method = factor(method, levels = c("uparse", "mothur", "qiime"), 
-                                            labels = c("uparse (MA)", "mothur (MA)", "qiime (MA)"))) ## %>% 
+                                            labels = c("uparse (SOP)", "mothur (SOP)", "qiime (SOP)"))) ## %>% 
   ## mutate(dataset = "mock6") ## Consider all datasets as identical
 ```
 
@@ -576,14 +576,16 @@ data.2 <- data.2 %>% mutate(method = factor(method, levels = c("uparse", "mothur
 
 ### Divergence 
 
-All methods achieve comparable (and not so good) divergences at high taxonomic ranks but FROGS and UPARSE are better at the Genus level. 
+All methods achieve comparable and quite high divergences at low taxonomic ranks (_e.g._ Genus and Family) and smaller ones at high ranks (_e.g._ Phylum). This is again probably a consequence of the real composition being quite different from the manufacturer provided one as a result of library preparation and other sources of biological biases. 
+
+We can however note that FROGS and UPARSE achieve lower divergence than the others at the Genus level. 
 
 ```{r bok-divergence-boxplot, fig.width = 8, fig.height = 4.5}
 p <- ggplot(filter(data, amplicon == "V4"), aes(x = method, y = divergence)) + geom_point() + geom_boxplot(aes(fill = method)) + facet_grid(abundance_law ~ rank) + scale_color_manual(values = manual.palette) + scale_fill_manual(values = manual.palette) + theme_bw() + ylab("Divergence") + theme(axis.text.x = element_text(angle = 90))
 plot(p)
 ```
 
-FROGS exhibits sligth excess divergence over UPARSE and is comparable to MOTHUR and QIIME at high taxonomic ranks and is strictly better than them at low taxonomic ranks. 
+The finer view provided by comparing FROGS excess divergence over competing methods shows that it is slightly worse than UPARSE at all ranks, comparable to MOTHUR and QIIME at high taxonomic ranks and strictly better at low taxonomic ranks. 
 
 ```{r bok-excess-divergence-boxplot, fig.width = 8, fig.height = 4.5}
 p <- ggplot(data.2, aes(x = method, y = frogs - divergence)) + geom_point() + geom_boxplot(aes(fill = method)) + facet_grid(abundance_law ~ rank) + scale_color_manual(values = manual.palette) + 
@@ -591,10 +593,6 @@ p <- ggplot(data.2, aes(x = method, y = frogs - divergence)) + geom_point() + ge
               theme(axis.text.x = element_text(angle = 90)) + geom_hline(yintercept = 0)
 plot(p)
 ```
-
-### False Positive and False Negative OTUs
-
-Not Available
 
 ## Statistical Analysis
 
@@ -608,6 +606,3 @@ Not Available
 ```{r bok-batch-t-test-plot, fig.width=10, fig.height=10, ref.label="batch-t-test-plot", warning= FALSE}
 ```
 
-### False Positive and False Negative OTUs
-
-Not available
