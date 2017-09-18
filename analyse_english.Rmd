@@ -164,9 +164,12 @@ data.t.test <- data.2 %>% group_by(databank, nb_OTU, dataset, amplicon, abundanc
 ```
 
 ```{r batch-t-test-plot, eval = FALSE}
-p <- ggplot(mapping = aes(x = rank, fill = best)) + facet_grid(abundance_law + amplicon ~ nb_OTU) + theme_bw() + scale_fill_manual(values = manual.palette) + theme(axis.text.x = element_text(angle = 90))
+p <- ggplot(mapping = aes(x = rank, fill = best)) + facet_grid(abundance_law + amplicon ~ nb_OTU) + theme_bw() + scale_fill_manual(values = manual.palette, drop = FALSE) + 
+  theme(axis.text.x = element_text(angle = 90), 
+        plot.title = element_text(hjust = 0.5))
 plot.list <- generate_barplot(p, data = data.t.test, vbl = "method", ylab = "Number of communities")
-grid_arrange_shared_legend(plot.list, ncol = 2)
+g <- grid_arrange_shared_legend(plot.list, ncol = 2, plot = FALSE)
+grid.draw(g)
 ```
 
 ```{r batch-wilcox-test-np, eval = FALSE}
