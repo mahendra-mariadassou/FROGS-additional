@@ -157,3 +157,8 @@ manual.palette <- c("frogs"      = rgb(0, 1, 0, alpha = 0.6, maxColorValue = 1),
                     "uparse (SOP)" = rgb(0, 0.5, 1, alpha = 0.6, maxColorValue = 1), 
                     "qiime (MA)"      = rgb(1, 0.2, 1, alpha = 0.6, maxColorValue = 1), 
                     "qiime (SOP)"  = rgb(1, 0.5, 1, alpha = 0.6, maxColorValue = 1))
+
+otu.palette <- c("true"     = rgb(0, 1, 0, alpha = 0.6, maxColorValue = 1), 
+                "accepted" = rgb(0, 0.5, 1, alpha = 0.6, maxColorValue = 1), 
+                "spurious" = rgb(1, 0, 0, alpha = 0.6, maxColorValue = 1), 
+                "not"      = "white")

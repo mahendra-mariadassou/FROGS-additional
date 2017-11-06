@@ -572,7 +572,7 @@ p <- ggplot(amplicon.data, aes(x = method, y = value, fill = OTU_type)) +
   facet_grid(Value_type ~ amplicon, scale = "free_y") + 
   ## scale_fill_manual(values = manual.palette) + 
   ## scale_alpha_manual(values = setNames(c(0, 0.2, 0.6, 1), c("not", "spurious", "accepted", "true"))) +
-  scale_fill_manual(values = setNames(c("white", "grey70", "grey40", "grey10"), c("not", "spurious", "accepted", "true"))) +
+  scale_fill_manual(values = otu.palette) +
   theme_bw() + labs(x = NULL, y = NULL) + 
   theme(axis.text.x = element_text(angle = 90))
 plot(p)
@@ -587,7 +587,7 @@ p <- ggplot(amplicon.data %>% filter(method %in% c("frogs", "uparse (SOP)")),
   facet_grid(Value_type ~ amplicon, scale = "free_y") + 
   ## scale_fill_manual(values = manual.palette) + 
   ## scale_alpha_manual(values = setNames(c(0, 0.2, 0.6, 1), c("not", "spurious", "accepted", "true"))) +
-  scale_fill_manual(values = setNames(c("white", "grey70", "grey40", "grey10"), c("not", "spurious", "accepted", "true"))) +
+  scale_fill_manual(values = otu.palette) +
   theme_bw() + labs(x = NULL, y = NULL) + 
   theme(axis.text.x = element_text(angle = 90))
 plot(p)
@@ -636,7 +636,7 @@ p <- ggplot(abundance.data, aes(x = method, y = value, fill = OTU_type)) +
   facet_grid(Value_type ~ abundance_law + set_number, scale = "free_y") + 
   ## scale_fill_manual(values = manual.palette) + 
   ## scale_alpha_manual(values = setNames(c(0, 0.2, 0.6, 1), c("not", "spurious", "accepted", "true"))) +
-  scale_fill_manual(values = setNames(c("white", "grey70", "grey40", "grey10"), c("not", "spurious", "accepted", "true"))) +
+  scale_fill_manual(values = otu.palette) +
   theme_bw() + labs(x = NULL, y = NULL) + 
   theme(axis.text.x = element_text(angle = 90))
 plot(p)
@@ -653,7 +653,7 @@ p <- ggplot(abundance.data %>% filter(method %in% c("frogs", "uparse (SOP)")),
   facet_grid(Value_type ~ abundance_law + set_number, scale = "free_y") + 
   ## scale_fill_manual(values = manual.palette) + 
   ## scale_alpha_manual(values = setNames(c(0, 0.2, 0.6, 1), c("not", "spurious", "accepted", "true"))) +
-  scale_fill_manual(values = setNames(c("white", "grey60", "grey30", "grey10"), c("not", "spurious", "accepted", "true"))) +
+  scale_fill_manual(values = otu.palette) +
   theme_bw() + labs(x = NULL, y = NULL) + 
   theme(axis.text.x = element_text(angle = 90))
 plot(p)
